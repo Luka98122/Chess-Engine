@@ -93,10 +93,10 @@ namespace ChessEngine
     public static class PawnMoveGenerator
     {
         // Masks to prevent pawns from wrapping around the board edges during diagonal captures
-        private const ulong NotFileA = 0xFEFEFEFEFEFEFEFEUL;
-        private const ulong NotFileH = 0x7F7F7F7F7F7F7F7FUL;
+        public const ulong NotFileA = 0xFEFEFEFEFEFEFEFEUL;
+        public const ulong NotFileH = 0x7F7F7F7F7F7F7F7FUL;
 
-        private static int AddPawnMove(Span<Move> moves, ref int moveCount, int from, int to, int piece, bool isCapture)
+        private static int AddPawnMove(Span<Move> moves, int moveCount, int from, int to, int piece, bool isCapture)
         {
             bool isPromotion = to >= 56 || to <= 7;
 
@@ -132,7 +132,7 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, ref moveCount, toSquare-8, toSquare, 0, false);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare-8, toSquare, 0, false);
                     iter &= iter - 1; // Clears the least significant '1' bit
                 }
 
@@ -153,7 +153,7 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, ref moveCount, toSquare - 7, toSquare, 0, true);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare - 7, toSquare, 0, true);
                     iter &= iter - 1;
                 }
 
@@ -163,7 +163,7 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, ref moveCount, toSquare - 9, toSquare, 0, true);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare - 9, toSquare, 0, true);
                     iter &= iter - 1;
                 }
             }
@@ -175,7 +175,7 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, ref moveCount, toSquare+8, toSquare, 0, false);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare+8, toSquare, 0, false);
                     iter &= iter - 1;
                 }
 
@@ -196,7 +196,7 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, ref moveCount, toSquare + 9, toSquare, 6, true);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare + 9, toSquare, 6, true);
                     iter &= iter - 1;
                 }
 
@@ -206,7 +206,7 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, ref moveCount, toSquare + 7, toSquare, 6, true);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare + 7, toSquare, 6, true);
                     iter &= iter - 1;
                 }
             }
@@ -874,21 +874,23 @@ namespace ChessEngine
         {
             int generatedMoves = GenerateAllPseudoLegalMoves(b, moves, col);
             int ind = 0;
+            
+            int kingPieceType = col == 0 ? 5 : 11;
+            int attackerCol = 1 - col;
+
             for (int i = 0; i < generatedMoves; i++)
             {
                 b.MakeMove(moves[i]);
-                bool isValid = !b.isCheckForColor(col,moves.Slice(generatedMoves));
+                
+                int kingSquare = BitOperations.TrailingZeroCount(b.Pieces[kingPieceType]);
+                bool isValid = !b.IsSquareAttacked(kingSquare, attackerCol);
+                
                 b.UnmakeMove();
+                
                 if (isValid)
                 {
-                    moves[ind] = moves[i];
-                    ind++;
+                    moves[ind++] = moves[i];
                 }
-                else
-                {
-                    
-                }
-
             }
 
             return ind;

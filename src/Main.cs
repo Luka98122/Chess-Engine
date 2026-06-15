@@ -169,20 +169,54 @@ namespace ChessEngine
             }
         }
 
-        public bool isCheckForColor(int col, Span<Move> moves) 
+        public bool IsSquareAttacked(int square, int attackerColor)
         {
-            int moveLen = allMoves.GenerateAllPseudoLegalMoves(this, moves, 1-col); // 1-col is the opposing color, so we get the moves for the opposite color
+            ulong friendlyPieces = attackerColor == 0 
+                ? (Pieces[0] | Pieces[1] | Pieces[2] | Pieces[3] | Pieces[4] | Pieces[5])
+                : (Pieces[6] | Pieces[7] | Pieces[8] | Pieces[9] | Pieces[10] | Pieces[11]);
+                
+            ulong enemyPieces = attackerColor == 0
+                ? (Pieces[6] | Pieces[7] | Pieces[8] | Pieces[9] | Pieces[10] | Pieces[11])
+                : (Pieces[0] | Pieces[1] | Pieces[2] | Pieces[3] | Pieces[4] | Pieces[5]);
+                
+            ulong occupied = friendlyPieces | enemyPieces;
+            ulong squareBB = 1UL << square;
 
-            ulong attackBB = 0UL;
+            ulong knights = Pieces[attackerColor == 0 ? 1 : 7];
+            if ((KnightMoveGenerator.KnightPreCalcs[square] & knights) != 0) return true;
 
-            for (int i = 0; i < moveLen; i++)
+            ulong kings = Pieces[attackerColor == 0 ? 5 : 11];
+            if ((KingMoveGenerator.KingPreCalcs[square] & kings) != 0) return true;
+
+            ulong pawns = Pieces[attackerColor == 0 ? 0 : 6];
+            if (attackerColor == 0) // White is attacking
             {
-                int pos = moves[i].ToSquare;
-                attackBB |= 1UL << pos;
+                if ((((squareBB & PawnMoveGenerator.NotFileA) >> 9) & pawns) != 0) return true;
+                if ((((squareBB & PawnMoveGenerator.NotFileH) >> 7) & pawns) != 0) return true;
+            }
+            else // Black is attacking
+            {
+                if ((((squareBB & PawnMoveGenerator.NotFileA) << 7) & pawns) != 0) return true;
+                if ((((squareBB & PawnMoveGenerator.NotFileH) << 9) & pawns) != 0) return true;
             }
 
-            return (this.Pieces[5 + 6 * col] & attackBB) != 0;
+            ulong bishopsQueens = Pieces[attackerColor == 0 ? 2 : 8] | Pieces[attackerColor == 0 ? 4 : 10];
+            if (bishopsQueens != 0)
+            {
+                ulong bishopBlockers = occupied & BishopMoveGenerator.BishopMasks[square];
+                int bMagicIndex = (int)((bishopBlockers * BishopMoveGenerator.BishopMagics[square]) >> (64 - BishopMoveGenerator.BishopRelevantBits[square]));
+                if ((BishopMoveGenerator.BishopAttacks[square][bMagicIndex] & bishopsQueens) != 0) return true;
+            }
 
+            ulong rooksQueens = Pieces[attackerColor == 0 ? 3 : 9] | Pieces[attackerColor == 0 ? 4 : 10];
+            if (rooksQueens != 0)
+            {
+                ulong rookBlockers = occupied & RookMoveGenerator.RookMasks[square];
+                int rMagicIndex = (int)((rookBlockers * RookMoveGenerator.RookMagics[square]) >> (64 - RookMoveGenerator.RookRelevantBits[square]));
+                if ((RookMoveGenerator.RookAttacks[square][rMagicIndex] & rooksQueens) != 0) return true;
+            }
+
+            return false;
         }
     
     }
