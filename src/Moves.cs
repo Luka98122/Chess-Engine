@@ -203,11 +203,8 @@ namespace ChessEngine
         public static ulong[] RookMasks = new ulong[64];
         public static ulong[][] RookAttacks = new ulong[64][];
         
-        // The number of relevant blocker bits for a rook on each square (varies from 7 to 12)
+        
         public static int[] RookRelevantBits = new int[64];
-
-        // You will need to populate this with standard 64-bit Rook Magic Numbers 
-        // (easily found on the Chess Programming Wiki).
         
         public static readonly ulong[] RookMagics = new ulong[64] {
             0x0A80011040008060UL, // Square 0
@@ -298,17 +295,15 @@ namespace ChessEngine
             {
                 int fromSquare = BitOperations.TrailingZeroCount(rooksIter);
 
-                // --- MAGIC BITBOARD HASHING ---
-                // Mask the board to only look at relevant blockers for this square
+                // Relevant blocker maska
                 ulong blockers = occupied & RookMasks[fromSquare];
                 
-                // Multiply by the magic number and shift down to get a clean array index
+                // blockers je jedinstven bitboard layout za relevant blocker mask
                 int magicIndex = (int)((blockers * RookMagics[fromSquare]) >> (64 - RookRelevantBits[fromSquare]));
                 
-                // Instantly look up the precalculated attack bitboard and mask out friendly pieces
+                // O(1) provera i invalidiranje napadanje svojih figura
                 ulong attacks = RookAttacks[fromSquare][magicIndex] & ~friendlyPieces;
 
-                // 3. Extract moves
                 ulong attacksIter = attacks;
                 while (attacksIter != 0)
                 {
@@ -325,7 +320,6 @@ namespace ChessEngine
             return moveCount;
         }
 
-        // --- THE INITIALIZATION (Runs once at startup) ---
         public static void PreCalculateRookAttacks()
         {
             for (int square = 0; square < 64; square++)
@@ -334,45 +328,66 @@ namespace ChessEngine
                 RookMasks[square] = CreateRookMask(square);
                 RookRelevantBits[square] = BitOperations.PopCount(RookMasks[square]);
 
-                // 2. Allocate memory for this square's specific number of permutations (2^n)
+                // Alociranje memorije O(2^n)w
                 int permutationCount = 1 << RookRelevantBits[square];
                 RookAttacks[square] = new ulong[permutationCount];
 
-                // 3. Generate all possible blocker combinations and calculate naive attacks
+                
                 ulong mask = RookMasks[square];
-                ulong blockerPattern = 0; // Carry-Rippler trick to iterate sub-masks
+                ulong blockerPattern = 0; // Carry-Rippler
 
                 do
                 {
-                    // Calculate the magic index for this specific blocker pattern
+                    // Magican index u koji cemo svrstati keshiran rez
                     int magicIndex = (int)((blockerPattern * RookMagics[square]) >> (64 - RookRelevantBits[square]));
                     
-                    // Run standard slow raycasting to find the true attacks for this blocker state
+                    // Naivno izracunamo moguce poteze i keshiramo
                     RookAttacks[square][magicIndex] = CalculateNaiveRookAttacks(square, blockerPattern);
 
-                    // Iterate to the next sub-mask permutation
+                    // Carry-rippler trick (efikasno dodje do sledece podmaske)
                     blockerPattern = (blockerPattern - mask) & mask;
                 } 
                 while (blockerPattern != 0);
             }
         }
 
-        // Helper: Generates the blocker mask (ignores outer edges because rays stop there anyway)
         public static ulong CreateRookMask(int square)
         {
             ulong mask = 0UL;
             int r = square / 8;
             int f = square % 8;
 
-            for (int i = r + 1; i <= 6; i++) mask |= (1UL << (i * 8 + f)); // North
-            for (int i = r - 1; i >= 1; i--) mask |= (1UL << (i * 8 + f)); // South
-            for (int i = f + 1; i <= 6; i++) mask |= (1UL << (r * 8 + i)); // East
-            for (int i = f - 1; i >= 1; i--) mask |= (1UL << (r * 8 + i)); // West
+            // North
+            for (int i = r + 1; i <= 6; i++) 
+            {
+                int targetSquare = i * 8 + f;
+                mask |= (1UL << targetSquare);
+            }
+            
+            // South
+            for (int i = r - 1; i >= 1; i--) 
+            {
+                int targetSquare = i * 8 + f;
+                mask |= (1UL << targetSquare);
+            }
+            
+            // East
+            for (int i = f + 1; i <= 6; i++) 
+            {
+                int targetSquare = r * 8 + i;
+                mask |= (1UL << targetSquare);
+            }
+            
+            // West
+            for (int i = f - 1; i >= 1; i--) 
+            {
+                int targetSquare = r * 8 + i;
+                mask |= (1UL << targetSquare);
+            }
 
             return mask;
         }
 
-        // Helper: Slow raycasting used ONLY during startup
         public static ulong CalculateNaiveRookAttacks(int square, ulong blockers)
         {
             ulong attacks = 0UL;
@@ -380,13 +395,61 @@ namespace ChessEngine
             int f = square % 8;
 
             // North
-            for (int i = r + 1; i <= 7; i++) { attacks |= (1UL << (i * 8 + f)); if ((blockers & (1UL << (i * 8 + f))) != 0) break; }
+            for (int i = r + 1; i <= 7; i++) 
+            {
+                int targetSquare = i * 8 + f;
+                ulong squareMask = 1UL << targetSquare;
+                
+                attacks |= squareMask; 
+                
+                // Ako se poklapa bar jedan blocker onda prestajemo
+                if ((blockers & squareMask) != 0) 
+                {
+                    break;
+                }
+            }
+            
             // South
-            for (int i = r - 1; i >= 0; i--) { attacks |= (1UL << (i * 8 + f)); if ((blockers & (1UL << (i * 8 + f))) != 0) break; }
+            for (int i = r - 1; i >= 0; i--) 
+            {
+                int targetSquare = i * 8 + f;
+                ulong squareMask = 1UL << targetSquare;
+                
+                attacks |= squareMask; 
+                
+                if ((blockers & squareMask) != 0) 
+                {
+                    break;
+                }
+            }
+            
             // East
-            for (int i = f + 1; i <= 7; i++) { attacks |= (1UL << (r * 8 + i)); if ((blockers & (1UL << (r * 8 + i))) != 0) break; }
+            for (int i = f + 1; i <= 7; i++) 
+            {
+                int targetSquare = r * 8 + i;
+                ulong squareMask = 1UL << targetSquare;
+                
+                attacks |= squareMask; 
+                
+                if ((blockers & squareMask) != 0) 
+                {
+                    break;
+                }
+            }
+            
             // West
-            for (int i = f - 1; i >= 0; i--) { attacks |= (1UL << (r * 8 + i)); if ((blockers & (1UL << (r * 8 + i))) != 0) break; }
+            for (int i = f - 1; i >= 0; i--) 
+            {
+                int targetSquare = r * 8 + i;
+                ulong squareMask = 1UL << targetSquare;
+                
+                attacks |= squareMask; 
+                
+                if ((blockers & squareMask) != 0) 
+                {
+                    break;
+                }
+            }
 
             return attacks;
         }
