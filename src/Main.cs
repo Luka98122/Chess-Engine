@@ -14,7 +14,7 @@ InitializeStartingPosition(board);
 Console.WriteLine("=== Initial Board State ===");
 RenderBoard(board);
 
-// 2. Play the move e2-e4
+// 2. Play the move e2-e4z`
 // Square Math: 
 // A1 = 0, B1 = 1 ... E1 = 4
 // E2 = Rank 2 (index 1) * 8 + File E (index 4) = 12
