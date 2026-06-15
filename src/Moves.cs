@@ -289,7 +289,6 @@ namespace ChessEngine
             ulong occupied = friendlyPieces | enemyPieces;
             int pieceType = color == 0 ? 3 : 9; // 3 = White Rook, 9 = Black Rook
 
-            // 2. Iterate over rooks
             ulong rooksIter = rooks;
             while (rooksIter != 0)
             {
@@ -461,7 +460,6 @@ namespace ChessEngine
         public static ulong[][] BishopAttacks = new ulong[64][];
         public static int[] BishopRelevantBits = new int[64];
 
-        // Standard 64-bit Bishop Magics
         
         public static readonly ulong[] BishopMagics = new ulong[64] {
             0x800202680E008200UL, // Square 0
@@ -599,11 +597,33 @@ namespace ChessEngine
             int r = square / 8;
             int f = square % 8;
 
-            // Diagonals stop at rank 1, rank 6, file 1, and file 6 to ignore outer edges
-            for (int i = r + 1, j = f + 1; i <= 6 && j <= 6; i++, j++) mask |= (1UL << (i * 8 + j)); // NE
-            for (int i = r + 1, j = f - 1; i <= 6 && j >= 1; i++, j--) mask |= (1UL << (i * 8 + j)); // NW
-            for (int i = r - 1, j = f + 1; i >= 1 && j <= 6; i--, j++) mask |= (1UL << (i * 8 + j)); // SE
-            for (int i = r - 1, j = f - 1; i >= 1 && j >= 1; i--, j--) mask |= (1UL << (i * 8 + j)); // SW
+            // North-East (NE)
+            for (int i = r + 1, j = f + 1; i <= 6 && j <= 6; i++, j++)
+            {
+                int targetSquare = i * 8 + j;
+                mask |= (1UL << targetSquare);
+            }
+
+            // North-West (NW)
+            for (int i = r + 1, j = f - 1; i <= 6 && j >= 1; i++, j--)
+            {
+                int targetSquare = i * 8 + j;
+                mask |= (1UL << targetSquare);
+            }
+
+            // South-East (SE)
+            for (int i = r - 1, j = f + 1; i >= 1 && j <= 6; i--, j++)
+            {
+                int targetSquare = i * 8 + j;
+                mask |= (1UL << targetSquare);
+            }
+
+            // South-West (SW)
+            for (int i = r - 1, j = f - 1; i >= 1 && j >= 1; i--, j--)
+            {
+                int targetSquare = i * 8 + j;
+                mask |= (1UL << targetSquare);
+            }
 
             return mask;
         }
@@ -614,10 +634,61 @@ namespace ChessEngine
             int r = square / 8;
             int f = square % 8;
 
-            for (int i = r + 1, j = f + 1; i <= 7 && j <= 7; i++, j++) { attacks |= (1UL << (i * 8 + j)); if ((blockers & (1UL << (i * 8 + j))) != 0) break; }
-            for (int i = r + 1, j = f - 1; i <= 7 && j >= 0; i++, j--) { attacks |= (1UL << (i * 8 + j)); if ((blockers & (1UL << (i * 8 + j))) != 0) break; }
-            for (int i = r - 1, j = f + 1; i >= 0 && j <= 7; i--, j++) { attacks |= (1UL << (i * 8 + j)); if ((blockers & (1UL << (i * 8 + j))) != 0) break; }
-            for (int i = r - 1, j = f - 1; i >= 0 && j >= 0; i--, j--) { attacks |= (1UL << (i * 8 + j)); if ((blockers & (1UL << (i * 8 + j))) != 0) break; }
+            // North-East (NE)
+            for (int i = r + 1, j = f + 1; i <= 7 && j <= 7; i++, j++)
+            {
+                int targetSquare = i * 8 + j;
+                ulong squareMask = 1UL << targetSquare;
+                
+                attacks |= squareMask;
+                
+                if ((blockers & squareMask) != 0)
+                {
+                    break;
+                }
+            }
+
+            // North-West (NW)
+            for (int i = r + 1, j = f - 1; i <= 7 && j >= 0; i++, j--)
+            {
+                int targetSquare = i * 8 + j;
+                ulong squareMask = 1UL << targetSquare;
+                
+                attacks |= squareMask;
+                
+                if ((blockers & squareMask) != 0)
+                {
+                    break;
+                }
+            }
+
+            // South-East (SE)
+            for (int i = r - 1, j = f + 1; i >= 0 && j <= 7; i--, j++)
+            {
+                int targetSquare = i * 8 + j;
+                ulong squareMask = 1UL << targetSquare;
+                
+                attacks |= squareMask;
+                
+                if ((blockers & squareMask) != 0)
+                {
+                    break;
+                }
+            }
+
+            // South-West (SW)
+            for (int i = r - 1, j = f - 1; i >= 0 && j >= 0; i--, j--)
+            {
+                int targetSquare = i * 8 + j;
+                ulong squareMask = 1UL << targetSquare;
+                
+                attacks |= squareMask;
+                
+                if ((blockers & squareMask) != 0)
+                {
+                    break;
+                }
+            }
 
             return attacks;
         }
