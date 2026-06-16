@@ -8,6 +8,34 @@ namespace ChessEngine
 
     public static class Tests
     {
+
+        public static void OpeningMoveTest()
+        {
+            Board b = new Board(); // normal starting position
+
+            // White: e2 -> e4
+            b.MakeMove(new Move
+            {
+                FromSquare = 12, // e2
+                ToSquare = 28,     // e4
+                PieceType = 0
+            });
+
+            // Black: e7 -> e6
+            b.MakeMove(new Move
+            {
+                FromSquare = 52, // e7
+                ToSquare = 44,     // e6
+                PieceType = 6
+            });
+
+            RenderSideBySide(
+                "22. Opening: 1.e4 e6",
+                b,
+                0UL,
+                0
+            );
+        }
         public static void allTests()
         {
             Console.WriteLine("=== RUNNING ENGINE TESTS ===\n");
@@ -82,6 +110,8 @@ namespace ChessEngine
                     (10, 60)  // Black Queen e8
                 ), 
                 0, 3, 28);
+
+            OpeningMoveTest();
         }
 
         private static Board SetupBoard(params (int pieceType, int square)[] placements)

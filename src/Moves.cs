@@ -175,7 +175,7 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, moveCount, toSquare+8, toSquare, 0, false);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare+8, toSquare, 6, false);
                     iter &= iter - 1;
                 }
 

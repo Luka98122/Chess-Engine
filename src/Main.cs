@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Numerics;
 using System.Reflection.PortableExecutable;
 using ChessEngine;
 using static ChessEngine.EngineHelpers;
@@ -245,7 +246,27 @@ namespace ChessEngine
 
             return false;
         }
-    
+        
+        public int GetBoardState()
+        {
+            Span<Move> moves = stackalloc Move[218]; // mnogo brze od heap memorije
+            int legalMoveCount = allMoves.GenerateAllLegalMoves(this, moves, this.SideToMove);
+
+            if (legalMoveCount > 0)
+            {
+                if (this.HalfMoveClock >= 100) return 2; // stalemate (pat)
+                return -1; // normal
+            }
+
+            int kingPieceType = 5 + this.SideToMove * 6;
+            int kingSquare = BitOperations.TrailingZeroCount(this.Pieces[kingPieceType]);
+            int attackerColor = 1 - this.SideToMove;
+
+            if (this.IsSquareAttacked(kingSquare, attackerColor)){
+                return attackerColor; // attackerColor wins
+            }
+            return 2; // Stalemate (pat)
+        }
     }
 }
 
