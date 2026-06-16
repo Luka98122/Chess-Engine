@@ -281,6 +281,44 @@ namespace ChessEngine
             }
             return 2; // Stalemate (pat)
         }
+
+        private int GetCheapestAttackerValue(int sq, int attackerColor, ulong occupied)
+        {
+            int pOffset = attackerColor == 0 ? 0 : 6;
+            ulong targetBit = 1UL << sq;
+
+            // 1. Pawns (100)
+            // Reverse pawn attacks: If a White pawn attacks `sq`, the pawn must be at sq-7 or sq-9.
+            ulong pawns = Pieces[pOffset + 0];
+            ulong pawnAttackers = attackerColor == 0
+                ? ((targetBit >> 7) & PawnMoveGenerator.NotFileA) | ((targetBit >> 9) & PawnMoveGenerator.NotFileH)
+                : ((targetBit << 7) & PawnMoveGenerator.NotFileH) | ((targetBit << 9) & PawnMoveGenerator.NotFileA);
+            if ((pawns & pawnAttackers) != 0) return 100;
+
+            // 2. Knights (300)
+            if ((KnightMoveGenerator.KnightPreCalcs[sq] & Pieces[pOffset + 1]) != 0) return 300;
+
+            // 3. Bishops (300)
+            ulong bBlockers = occupied & BishopMoveGenerator.BishopMasks[sq];
+            int bMagic = (int)((bBlockers * BishopMoveGenerator.BishopMagics[sq]) >> (64 - BishopMoveGenerator.BishopRelevantBits[sq]));
+            ulong bAttacks = BishopMoveGenerator.BishopAttacks[sq][bMagic];
+            if ((bAttacks & Pieces[pOffset + 2]) != 0) return 300;
+
+            // 4. Rooks (500)
+            ulong rBlockers = occupied & RookMoveGenerator.RookMasks[sq];
+            int rMagic = (int)((rBlockers * RookMoveGenerator.RookMagics[sq]) >> (64 - RookMoveGenerator.RookRelevantBits[sq]));
+            ulong rAttacks = RookMoveGenerator.RookAttacks[sq][rMagic];
+            if ((rAttacks & Pieces[pOffset + 3]) != 0) return 500;
+
+            // 5. Queens (900) - Queens share Rook and Bishop attack rays
+            if (((bAttacks | rAttacks) & Pieces[pOffset + 4]) != 0) return 900;
+
+            // 6. Kings (6767)
+            if ((KingMoveGenerator.KingPreCalcs[sq] & Pieces[pOffset + 5]) != 0) return 6767;
+
+            return 99999; // 99999 means the square is not attacked
+        }
+
         public static List<int> vals = new List<int> { 100, 300, 300, 500, 900, 6767, -100, -300, -300, -500, -900, -6767 };
         public int GetBoardEval(int depth=1)
         {
@@ -320,6 +358,9 @@ namespace ChessEngine
 
             if (depth > 0)
             {
+                ulong occupied = this.Pieces[0] | this.Pieces[1] | this.Pieces[2] | this.Pieces[3] | this.Pieces[4] | this.Pieces[5] |
+                                 this.Pieces[6] | this.Pieces[7] | this.Pieces[8] | this.Pieces[9] | this.Pieces[10] | this.Pieces[11];
+
                 // 1. Evaluate hanging pieces for White (Indices 0-4: Pawn to Queen)
                 for (int i = 0; i < 5; i++)
                 {
@@ -328,14 +369,21 @@ namespace ChessEngine
                     {
                         int sq = BitOperations.TrailingZeroCount(piecesIter);
 
-                        // If attacked by Black (1) and NOT defended by White (0)
-                        if (this.IsSquareAttacked(sq, 1) && !this.IsSquareAttacked(sq, 0))
-                        {
-                            // Penalize White by reducing the score
-                            score -= vals[i] / 2;
-                        }
+                        int cheapestAttacker = GetCheapestAttackerValue(sq, 1, occupied); // 1 = Black
 
-                        piecesIter &= piecesIter - 1; // Clear the processed piece
+                        if (cheapestAttacker != 99999) // If it is attacked at all
+                        {
+                            bool isDefended = this.IsSquareAttacked(sq, 0); // 0 = White
+                            int pieceValue = vals[i]; // E.g., 900 for Queen
+
+                            // It is a bad position if it's completely undefended, 
+                            // OR if the attacker is worth less than the victim (e.g., Pawn attacking defended Queen)
+                            if (!isDefended || cheapestAttacker < pieceValue)
+                            {
+                                score -= pieceValue / 2;
+                            }
+                        }
+                        piecesIter &= piecesIter - 1;
                     }
                 }
 
@@ -347,14 +395,18 @@ namespace ChessEngine
                     {
                         int sq = BitOperations.TrailingZeroCount(piecesIter);
 
-                        // If attacked by White (0) and NOT defended by Black (1)
-                        if (this.IsSquareAttacked(sq, 0) && !this.IsSquareAttacked(sq, 1))
-                        {
-                            // Penalize Black. Because Black's values in `vals` are negative,
-                            // subtracting a negative number adds to the score (favoring White).
-                            score -= vals[i] / 2;
-                        }
+                        int cheapestAttacker = GetCheapestAttackerValue(sq, 0, occupied); // 0 = White
 
+                        if (cheapestAttacker != 99999)
+                        {
+                            bool isDefended = this.IsSquareAttacked(sq, 1); // 1 = Black
+                            int pieceValue = Math.Abs(vals[i]); // Black values are negative, so get the absolute value for comparison
+
+                            if (!isDefended || cheapestAttacker < pieceValue)
+                            {
+                                score -= vals[i] / 2; // Penalize Black (subtracting negative adds to White's score)
+                            }
+                        }
                         piecesIter &= piecesIter - 1;
                     }
                 }
