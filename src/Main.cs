@@ -101,7 +101,17 @@ namespace ChessEngine
         public byte CastlingRights = 15; 
         public int EnPassantSquare = -1;
         public int HalfMoveClock = 0;
-
+        // 15 represents binary 1111 (all castling rights intact)
+        public static readonly byte[] CastlingRightsMask = new byte[64] {
+            13, 15, 15, 15, 12, 15, 15, 14, // Rank 1 (a1=13, e1=12, h1=14)
+            15, 15, 15, 15, 15, 15, 15, 15,
+            15, 15, 15, 15, 15, 15, 15, 15,
+            15, 15, 15, 15, 15, 15, 15, 15,
+            15, 15, 15, 15, 15, 15, 15, 15,
+            15, 15, 15, 15, 15, 15, 15, 15,
+            15, 15, 15, 15, 15, 15, 15, 15,
+            7, 15, 15, 15, 3, 15, 15, 11 // Rank 8 (a8=7, e8=3, h8=11)
+        };
         // The history stack holds the FULL board snapshot
         private Stack<BoardSnapshot> _history = new Stack<BoardSnapshot>();
 
@@ -109,6 +119,10 @@ namespace ChessEngine
         {
             // 1. Take a snapshot of the ENTIRE current board and push it to history
             _history.Push(new BoardSnapshot(Pieces, SideToMove, CastlingRights, EnPassantSquare, HalfMoveClock));
+
+            CastlingRights &= CastlingRightsMask[move.FromSquare];
+            CastlingRights &= CastlingRightsMask[move.ToSquare];
+
 
             // 2. Apply the move
             // Remove piece from source square by clearing the bit
