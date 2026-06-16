@@ -267,6 +267,20 @@ namespace ChessEngine
             }
             return 2; // Stalemate (pat)
         }
+    
+        public int GetBoardEval()
+        {
+            //-1000 crni dominatuje
+            //+1000 beli dominatuje
+            List<int> vals = new List<int> { 100, 300, 300, 500, 900, 6767, -100, -300, -300, -500, -900, -6767 };
+            int score = 0;
+            for (int i = 0; i < 12; i++)
+            {
+                score += BitOperations.PopCount(this.Pieces[i]) * vals[i];
+                // PopCount = # of 1s in binary rep of a number (bitboard)
+            }
+            return score;
+        }
     }
 }
 
