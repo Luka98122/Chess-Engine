@@ -47,6 +47,7 @@ namespace ChessEngine
         public int EnPassantSquare;
         public int HalfMoveClock;
         public int GameType;
+        public ulong ZobristKey;
     }
 
     public class Board
@@ -74,6 +75,36 @@ namespace ChessEngine
         private BoardStateInfo[] _stateHistory = new BoardStateInfo[2048];
         private int _historyPly = 0;
 
+        public ulong ZobristKey;
+
+        public ulong GenerateKey()
+        {
+            ulong key = 0;
+
+            // 1. XOR all pieces
+            for (int p = 0; p < 12; p++)
+            {
+                ulong bitboard = Pieces[p];
+                while (bitboard != 0)
+                {
+                    int sq = System.Numerics.BitOperations.TrailingZeroCount(bitboard);
+                    key ^= Zobrist.Pieces[p, sq];
+                    bitboard &= bitboard - 1; // Clear LSB
+                }
+            }
+
+            // 2. XOR side to move
+            if (SideToMove == 1) key ^= Zobrist.SideToMove;
+
+            // 3. XOR castling rights
+            key ^= Zobrist.Castling[CastlingRights];
+
+            // 4. XOR en passant square
+            if (EnPassantSquare != -1) key ^= Zobrist.EnPassant[EnPassantSquare];
+
+            return key;
+        }
+
         public void MakeMove(Move move)
         {
             // 1. Take a snapshot of the ENTIRE current board and push it to history
@@ -84,6 +115,7 @@ namespace ChessEngine
             state.EnPassantSquare = EnPassantSquare;
             state.GameType = GameType;
             state.CapturedPieceType = -1;
+            state.ZobristKey = this.ZobristKey;
 
             CastlingRights &= CastlingRightsMask[move.FromSquare];
             CastlingRights &= CastlingRightsMask[move.ToSquare];
@@ -177,7 +209,7 @@ namespace ChessEngine
             // 4. Update Turn
             SideToMove = SideToMove == 0 ? 1 : 0;
 
-            
+            this.ZobristKey = GenerateKey();
         }
 
         public void UnmakeMove()
@@ -223,6 +255,7 @@ namespace ChessEngine
                 else if (move.ToSquare == 62) { Pieces[rookType] &= ~(1UL << 61); Pieces[rookType] |= (1UL << 63); } // g8
                 else if (move.ToSquare == 58) { Pieces[rookType] &= ~(1UL << 59); Pieces[rookType] |= (1UL << 56); } // c8
             }
+            this.ZobristKey = _stateHistory[_historyPly].ZobristKey;
         }
 
         // Helper method to locate and clear a captured piece
@@ -349,18 +382,13 @@ namespace ChessEngine
             return 99999; // 99999 means the square is not attacked
         }
 
-        public static List<int> vals = new List<int> { 100, 300, 300, 500, 900, 6767, -100, -300, -300, -500, -900, -6767 };
+        public static readonly int[] vals = new int[] { 100, 300, 300, 500, 900, 6767, -100, -300, -300, -500, -900, -6767 }; 
         public int GetBoardEval(int depth = 1)
         {
             //-1000 crni dominatuje
             //+1000 beli dominatuje
 
-            // Checkmate eval
-            int state = this.GetBoardState();
-            if (state == 2) return 0; // Stalemate
-            if (state == 0) return 100000; // Beli (0) je uradio checkmate na crnog 
-            if (state == 1) return -100000; // Crni (1) je uradio checkmate na belog
-
+            
             // Piece eval
 
             int score = 0;
@@ -409,7 +437,7 @@ namespace ChessEngine
 
             int bKingSquare = BitOperations.TrailingZeroCount(this.Pieces[11]);
             bool isBInCheck = this.IsSquareAttacked(bKingSquare, 0); //white attacking black king
-            if (isWInCheck)
+            if (isBInCheck)
             {
                 score += 50; // Configurable, but putting in check is weighted to 50cp (half a pawn)
             }
@@ -471,6 +499,28 @@ namespace ChessEngine
             }
 
             return score;
+        }
+
+        public Board Clone()
+        {
+            Board copy = new Board();
+
+            // Deep copy the piece bitboards (Assuming Pieces is a ulong array, usually size 12)
+            if (this.Pieces != null)
+            {
+                copy.Pieces = new ulong[this.Pieces.Length];
+                Array.Copy(this.Pieces, copy.Pieces, this.Pieces.Length);
+            }
+
+            // Copy all other essential state variables! 
+            // Make sure you include castling rights, en passant squares, half-move clocks, etc.
+            copy.SideToMove = this.SideToMove;
+            copy.GameType = this.GameType;
+
+            // Example: copy.WhiteCanCastleKingside = this.WhiteCanCastleKingside;
+            // Example: copy.EnPassantSquare = this.EnPassantSquare;
+
+            return copy;
         }
     }
 }

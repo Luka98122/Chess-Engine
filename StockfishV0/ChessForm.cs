@@ -18,6 +18,8 @@ namespace StockfishV0
 
         private ChessBoardControl chessBoard;
         private Label gameModeLabel;
+        private TextBox fenTextBox;
+        private Label fenStatusLabel;
 
         private enum GameMode
         {
@@ -147,6 +149,7 @@ namespace StockfishV0
             menuButton.Height = 32;
             menuButton.Location = new Point(10, 10);
             menuButton.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            menuButton.ForeColor = Color.White;
             menuButton.Click += MenuButton_Click;
 
             gameModeLabel = new Label();
@@ -179,19 +182,39 @@ namespace StockfishV0
 
             Label title = CreateTitleLabel("Settings", 36);
 
-            Label placeholder = new Label();
-            placeholder.Text = "Settings screen goes here.";
-            placeholder.ForeColor = Color.FromArgb(210, 210, 210);
-            placeholder.Font = new Font("Arial", 14, FontStyle.Regular);
-            placeholder.TextAlign = ContentAlignment.MiddleCenter;
-            placeholder.Dock = DockStyle.Fill;
+            Label fenLabel = new Label();
+            fenLabel.Text = "Paste FEN position:";
+            fenLabel.ForeColor = Color.FromArgb(210, 210, 210);
+            fenLabel.Font = new Font("Arial", 14, FontStyle.Bold);
+            fenLabel.TextAlign = ContentAlignment.MiddleCenter;
+            fenLabel.Dock = DockStyle.Fill;
+
+            fenTextBox = new TextBox();
+            fenTextBox.Width = 760;
+            fenTextBox.Height = 34;
+            fenTextBox.Anchor = AnchorStyles.None;
+            fenTextBox.Font = new Font("Consolas", 12, FontStyle.Regular);
+            fenTextBox.Text = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+            Button loadFenButton = CreateMenuButton("LOAD FEN");
+            loadFenButton.Click += LoadFenButton_Click;
+
+            fenStatusLabel = new Label();
+            fenStatusLabel.Text = "";
+            fenStatusLabel.ForeColor = Color.FromArgb(210, 210, 210);
+            fenStatusLabel.Font = new Font("Arial", 11, FontStyle.Bold);
+            fenStatusLabel.TextAlign = ContentAlignment.MiddleCenter;
+            fenStatusLabel.Dock = DockStyle.Fill;
 
             Button backButton = CreateMenuButton("BACK");
             backButton.Click += BackButtonToMain_Click;
 
             layout.Controls.Add(title, 0, 1);
-            layout.Controls.Add(placeholder, 0, 2);
-            layout.Controls.Add(backButton, 0, 3);
+            layout.Controls.Add(fenLabel, 0, 2);
+            layout.Controls.Add(fenTextBox, 0, 3);
+            layout.Controls.Add(loadFenButton, 0, 4);
+            layout.Controls.Add(fenStatusLabel, 0, 5);
+            layout.Controls.Add(backButton, 0, 6);
 
             settingsPanel.Controls.Add(layout);
         }
@@ -257,6 +280,40 @@ namespace StockfishV0
         private void SettingsButton_Click(object sender, EventArgs e)
         {
             ShowSettingsScreen();
+        }
+
+        private void LoadFenButton_Click(object sender, EventArgs e)
+        {
+            if (fenTextBox == null)
+            {
+                return;
+            }
+
+            string error;
+
+            if (!chessBoard.LoadFenPosition(fenTextBox.Text, out error))
+            {
+                if (fenStatusLabel != null)
+                {
+                    fenStatusLabel.ForeColor = Color.FromArgb(235, 110, 95);
+                    fenStatusLabel.Text = "FEN error: " + error;
+                }
+
+                return;
+            }
+
+            if (gameModeLabel != null)
+            {
+                gameModeLabel.Text = "CUSTOM FEN";
+            }
+
+            if (fenStatusLabel != null)
+            {
+                fenStatusLabel.ForeColor = Color.FromArgb(120, 220, 120);
+                fenStatusLabel.Text = "Loaded.";
+            }
+
+            ShowGameScreen();
         }
 
         private void PvpButton_Click(object sender, EventArgs e)
@@ -529,6 +586,47 @@ namespace StockfishV0
             aiVsAiEnabled = false;
             aiMoveQueued = false;
             boardInputLocked = false;
+        }
+
+        public bool LoadFenPosition(string fen, out string error) // ***
+        {
+            StopAiLoop();
+
+            Board loadedBoard = new Board();
+
+            if (!EngineHelpers.TryLoadFen(loadedBoard, fen, out error))
+            {
+                return false;
+            }
+
+            engineBoard = loadedBoard;
+
+            aiEnabled = false;
+            aiVsAiEnabled = false;
+            humanColor = 0;
+            aiColor = 1;
+            flipBoardEveryMove = true;
+            aiMoveQueued = false;
+            boardInputLocked = false;
+            boardPerspective = engineBoard.SideToMove;
+
+            gameIsOver = false;
+            gameOverState = -1;
+            gameOverTitle = "";
+            gameOverSubtitle = "";
+
+            lastMoveFromSquare = -1;
+            lastMoveToSquare = -1;
+            engineEvalCentipawns = engineBoard.GetBoardEval();
+
+            HidePromotionDropdown();
+            ClearSelectedPiece();
+            arrows.Clear();
+            ClearColoredSquares();
+            CheckGameOverState();
+
+            Invalidate();
+            return true;
         }
 
 
@@ -1173,11 +1271,8 @@ namespace StockfishV0
 
             if (delayMs <= 0)
             {
-                BeginInvoke(new MethodInvoker(delegate
-                {
-                    MakeBotMoveIfNeeded();
-                }));
-
+                // You can call this directly now; it won't block the thread.
+                MakeBotMoveIfNeeded();
                 return;
             }
 
@@ -1194,26 +1289,8 @@ namespace StockfishV0
 
             aiTimer.Start();
         }
-
-        private void MakeBotMoveIfNeeded()
+        private bool HasLegalMoves()
         {
-            aiMoveQueued = false;
-
-            if (!aiEnabled)
-            {
-                return;
-            }
-
-            if (gameIsOver)
-            {
-                return;
-            }
-
-            if (!aiVsAiEnabled && engineBoard.SideToMove != aiColor)
-            {
-                return;
-            }
-
             Move[] moveBuffer = new Move[500];
             Span<Move> legalMoves = moveBuffer;
 
@@ -1223,29 +1300,53 @@ namespace StockfishV0
                 engineBoard.SideToMove
             );
 
-            if (moveCount <= 0)
+            return moveCount > 0;
+        }
+
+           
+
+        private async void MakeBotMoveIfNeeded()
+        {
+            // Do NOT set aiMoveQueued = false here! 
+            // We want the AI to remain locked while it thinks.
+
+            if (!aiEnabled || gameIsOver || (!aiVsAiEnabled && engineBoard.SideToMove != aiColor))
             {
+                aiMoveQueued = false; // Safe to clear if we abort
+                return;
+            }
+
+            // Call our new synchronous helper to dodge the C# 12 async/span error
+            if (!HasLegalMoves())
+            {
+                aiMoveQueued = false;
                 Invalidate();
                 return;
             }
 
             int d = 5;
             int topX = 50;
-            if (engineBoard.GameType==1)
+            if (engineBoard.GameType == 1)
             {
                 d = 5;
                 topX = 50;
             }
-
-            if (engineBoard.GameType == 2)
+            else if (engineBoard.GameType == 2)
             {
                 d = 8;
                 topX = 25;
             }
 
+            // 1. Lock human input so dragging pieces is disabled in the UI
+            boardInputLocked = true;
 
-            Move botMove = Bot.Think(engineBoard, d, topX); //depth
+            // 2. Create a deep copy of the board for the AI to safely mutate
+            Board aiSandboxBoard = engineBoard.Clone();
 
+            // 3. Offload the calculation, passing the CLONE instead of the real board
+            Move botMove = await Task.Run(() => Bot.Think(aiSandboxBoard, d, topX));
+
+            // 4. The background thread is done. Execute the chosen move on the REAL board.
             engineBoard.MakeMove(botMove);
             SetLastMoveHighlight(botMove);
             engineEvalCentipawns = engineBoard.GetBoardEval();
@@ -1260,6 +1361,11 @@ namespace StockfishV0
             ClearSelectedPiece();
             Invalidate();
 
+            // 4. Unlock everything ONLY AFTER the move is fully processed and drawn
+            boardInputLocked = false;
+            aiMoveQueued = false;
+
+            // 5. If it's an AI vs AI game, queue the next move immediately
             if (aiVsAiEnabled && !gameIsOver)
             {
                 QueueBotMoveIfNeeded();

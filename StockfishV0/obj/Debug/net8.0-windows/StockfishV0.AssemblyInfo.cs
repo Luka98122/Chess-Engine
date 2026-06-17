@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("StockfishV0")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+40254397922c73392f2f572a927eee03c0ef641f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+567164107334f977b6cdbb379e58a82048b32a3f")]
 [assembly: System.Reflection.AssemblyProductAttribute("StockfishV0")]
 [assembly: System.Reflection.AssemblyTitleAttribute("StockfishV0")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

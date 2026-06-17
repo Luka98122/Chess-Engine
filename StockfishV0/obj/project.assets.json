@@ -27,23 +27,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\lmarkovic24\\.nuget\\packages\\": {},
+    "C:\\Users\\luka\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
+      "projectUniqueName": "C:\\Users\\luka\\Source\\Repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
       "projectName": "StockfishV0",
-      "projectPath": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
-      "packagesPath": "C:\\Users\\lmarkovic24\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\obj\\",
+      "projectPath": "C:\\Users\\luka\\Source\\Repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
+      "packagesPath": "C:\\Users\\luka\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\luka\\Source\\Repos\\Chess2\\StockfishV0\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\lmarkovic24\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\luka\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -58,8 +58,8 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "projectReferences": {
-            "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\chessEngine.csproj": {
-              "projectPath": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\chessEngine.csproj"
+            "C:\\Users\\luka\\Source\\Repos\\Chess2\\chessEngine\\chessEngine.csproj": {
+              "projectPath": "C:\\Users\\luka\\Source\\Repos\\Chess2\\chessEngine\\chessEngine.csproj"
             }
           }
         }
@@ -98,7 +98,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.313/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

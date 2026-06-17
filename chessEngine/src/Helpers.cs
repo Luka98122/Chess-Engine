@@ -1,4 +1,4 @@
-using System;
+using System; // LUKA FILE
 
 namespace ChessEngine
 {
@@ -116,13 +116,6 @@ namespace ChessEngine
             }
         }
 
-        // A function that interacts with an existing Board class
-        public static void AnalyzePosition(Board b)
-        {
-            string color = b.SideToMove == 0 ? "White" : "Black";
-            Console.WriteLine($"\n[Analysis] It is currently {color}'s turn to move.");
-        }
-
         // Helper to set the standard 64-bit hexadecimal starting positions
         public static void InitializeStartingPosition(Board b)
         {
@@ -145,42 +138,281 @@ namespace ChessEngine
             b.SideToMove = 0; // White's turn to move
         }
 
-        // Helper to render the board state in the terminal
-        public static void RenderBoard(Board b)
+        public static bool TryLoadFen(Board b, string fen, out string error)
         {
-            // Indices match the bitboard array (0-5 White, 6-11 Black)
-            // Uppercase for White, Lowercase for Black
-            char[] pieceChars = { 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k' };
+            error = "";
 
-            Console.WriteLine("  +-----------------+");
-
-            // Loop backwards from Rank 8 down to Rank 1 so the board prints right-side up
-            for (int rank = 7; rank >= 0; rank--)
+            if (b == null)
             {
-                Console.Write($"{rank + 1} | ");
-
-                for (int file = 0; file < 8; file++)
-                {
-                    int square = rank * 8 + file;
-                    char printChar = '.'; // Default empty square
-
-                    // Check all 12 bitboards to see if any piece is occupying this square
-                    for (int pieceType = 0; pieceType < 12; pieceType++)
-                    {
-                        // Bitwise AND to check if the specific square's bit is a 1
-                        if ((b.Pieces[pieceType] & (1UL << square)) != 0)
-                        {
-                            printChar = pieceChars[pieceType];
-                            break;
-                        }
-                    }
-                    Console.Write(printChar + " ");
-                }
-                Console.WriteLine("|");
+                error = "Board is missing.";
+                return false;
             }
-            Console.WriteLine("  +-----------------+");
-            Console.WriteLine("    a b c d e f g h");
+
+            if (string.IsNullOrWhiteSpace(fen))
+            {
+                error = "Paste a FEN first.";
+                return false;
+            }
+
+            string[] parts = fen.Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length < 4 || parts.Length > 6)
+            {
+                error = "FEN must have 4 to 6 fields: pieces side castling en-passant halfmove fullmove.";
+                return false;
+            }
+
+            for (int i = 0; i < 12; i++)
+            {
+                b.Pieces[i] = 0UL;
+            }
+
+            string[] ranks = parts[0].Split('/');
+
+            if (ranks.Length != 8)
+            {
+                error = "Piece placement must contain 8 ranks.";
+                return false;
+            }
+
+            for (int fenRank = 0; fenRank < 8; fenRank++)
+            {
+                int file = 0;
+
+                for (int i = 0; i < ranks[fenRank].Length; i++)
+                {
+                    char c = ranks[fenRank][i];
+
+                    if (char.IsDigit(c))
+                    {
+                        int emptySquares = c - '0';
+
+                        if (emptySquares < 1 || emptySquares > 8)
+                        {
+                            error = "Invalid empty-square number in piece placement.";
+                            return false;
+                        }
+
+                        file += emptySquares;
+                        continue;
+                    }
+
+                    int pieceType = FenCharToPieceType(c);
+
+                    if (pieceType == -1)
+                    {
+                        error = "Invalid piece character: " + c;
+                        return false;
+                    }
+
+                    if (file >= 8)
+                    {
+                        error = "Too many squares in one rank.";
+                        return false;
+                    }
+
+                    int engineRank = 7 - fenRank;
+                    int square = engineRank * 8 + file;
+
+                    b.Pieces[pieceType] |= 1UL << square;
+                    file++;
+                }
+
+                if (file != 8)
+                {
+                    error = "Each rank must add up to exactly 8 squares.";
+                    return false;
+                }
+            }
+
+            if (CountBits(b.Pieces[5]) != 1 || CountBits(b.Pieces[11]) != 1)
+            {
+                error = "FEN must contain exactly one white king and one black king.";
+                return false;
+            }
+
+            if (parts[1] == "w")
+            {
+                b.SideToMove = 0;
+            }
+            else if (parts[1] == "b")
+            {
+                b.SideToMove = 1;
+            }
+            else
+            {
+                error = "Side to move must be w or b.";
+                return false;
+            }
+
+            if (!TryParseCastlingRights(b, parts[2], out error))
+            {
+                return false;
+            }
+
+
+
+            b.HalfMoveClock = 0;
+
+            if (parts.Length >= 5)
+            {
+                int halfMoveClock;
+
+                if (!int.TryParse(parts[4], out halfMoveClock) || halfMoveClock < 0)
+                {
+                    error = "Halfmove clock must be 0 or higher.";
+                    return false;
+                }
+
+                b.HalfMoveClock = halfMoveClock;
+            }
+
+            if (parts.Length >= 6)
+            {
+                int fullMoveNumber;
+
+                if (!int.TryParse(parts[5], out fullMoveNumber) || fullMoveNumber < 1)
+                {
+                    error = "Fullmove number must be 1 or higher.";
+                    return false;
+                }
+
+                // Board does not currently store fullmove number, so we only validate it.
+            }
+
+            RemoveImpossibleCastlingRights(b);
+
+            return true;
         }
+
+        private static int FenCharToPieceType(char c)
+        {
+            if (c == 'P') return 0;
+            if (c == 'N') return 1;
+            if (c == 'B') return 2;
+            if (c == 'R') return 3;
+            if (c == 'Q') return 4;
+            if (c == 'K') return 5;
+
+            if (c == 'p') return 6;
+            if (c == 'n') return 7;
+            if (c == 'b') return 8;
+            if (c == 'r') return 9;
+            if (c == 'q') return 10;
+            if (c == 'k') return 11;
+
+            return -1;
+        }
+
+        private static bool TryParseCastlingRights(Board b, string castlingText, out string error)
+        {
+            error = "";
+            b.CastlingRights = 0;
+
+            if (castlingText == "-")
+            {
+                return true;
+            }
+
+            bool seenK = false;
+            bool seenQ = false;
+            bool seenk = false;
+            bool seenq = false;
+
+            for (int i = 0; i < castlingText.Length; i++)
+            {
+                char c = castlingText[i];
+
+                if (c == 'K')
+                {
+                    if (seenK)
+                    {
+                        error = "Duplicate castling right: K.";
+                        return false;
+                    }
+
+                    seenK = true;
+                    b.CastlingRights |= 1;
+                }
+                else if (c == 'Q')
+                {
+                    if (seenQ)
+                    {
+                        error = "Duplicate castling right: Q.";
+                        return false;
+                    }
+
+                    seenQ = true;
+                    b.CastlingRights |= 2;
+                }
+                else if (c == 'k')
+                {
+                    if (seenk)
+                    {
+                        error = "Duplicate castling right: k.";
+                        return false;
+                    }
+
+                    seenk = true;
+                    b.CastlingRights |= 4;
+                }
+                else if (c == 'q')
+                {
+                    if (seenq)
+                    {
+                        error = "Duplicate castling right: q.";
+                        return false;
+                    }
+
+                    seenq = true;
+                    b.CastlingRights |= 8;
+                }
+                else
+                {
+                    error = "Castling rights must be KQkq or -.";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static void RemoveImpossibleCastlingRights(Board b)
+        {
+            if ((b.Pieces[5] & (1UL << 4)) == 0 || (b.Pieces[3] & (1UL << 7)) == 0)
+            {
+                b.CastlingRights &= 14; // remove white kingside
+            }
+
+            if ((b.Pieces[5] & (1UL << 4)) == 0 || (b.Pieces[3] & (1UL << 0)) == 0)
+            {
+                b.CastlingRights &= 13; // remove white queenside
+            }
+
+            if ((b.Pieces[11] & (1UL << 60)) == 0 || (b.Pieces[9] & (1UL << 63)) == 0)
+            {
+                b.CastlingRights &= 11; // remove black kingside
+            }
+
+            if ((b.Pieces[11] & (1UL << 60)) == 0 || (b.Pieces[9] & (1UL << 56)) == 0)
+            {
+                b.CastlingRights &= 7; // remove black queenside
+            }
+        }
+
+        private static int CountBits(ulong value)
+        {
+            int count = 0;
+
+            while (value != 0)
+            {
+                value &= value - 1;
+                count++;
+            }
+
+            return count;
+        }
+
 
         public static void renderBitboard(ulong board, string title = "Bitboard")
         {

@@ -1,41 +1,41 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\",
+  "WorkspaceRootPath": "C:\\Users\\luka\\source\\repos\\Chess2\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|c:\\users\\lmarkovic24\\source\\repos\\chess2\\chessengine\\src\\bot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|solutionrelative:chessengine\\src\\bot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|c:\\users\\lmarkovic24\\source\\repos\\chess2\\stockfishv0\\chessform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|c:\\users\\luka\\source\\repos\\chess2\\stockfishv0\\chessform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|solutionrelative:stockfishv0\\chessform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|c:\\users\\lmarkovic24\\source\\repos\\chess2\\chessengine\\src\\main.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|c:\\users\\luka\\source\\repos\\chess2\\chessengine\\src\\bot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|solutionrelative:chessengine\\src\\bot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|c:\\users\\luka\\source\\repos\\chess2\\chessengine\\src\\main.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|solutionrelative:chessengine\\src\\main.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|c:\\users\\lmarkovic24\\source\\repos\\chess2\\chessengine\\src\\moves.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|c:\\users\\luka\\source\\repos\\chess2\\chessengine\\src\\moves.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|solutionrelative:chessengine\\src\\moves.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\stockfishv0\\chessform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "AbsoluteMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|c:\\users\\luka\\source\\repos\\chess2\\chessengine\\src\\helpers.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|solutionrelative:chessengine\\src\\helpers.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|C:\\Users\\luka\\source\\repos\\Chess2\\stockfishv0\\chessform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
       "RelativeMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|solutionrelative:stockfishv0\\chessform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|c:\\users\\lmarkovic24\\source\\repos\\chess2\\chessengine\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1DA59B9F-D786-4D2B-8519-C1B766C6C6BF}|chessEngine\\chessEngine.csproj|solutionrelative:chessengine\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|c:\\users\\lmarkovic24\\source\\repos\\chess2\\stockfishv0\\stockfishv0.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|c:\\users\\luka\\source\\repos\\chess2\\stockfishv0\\stockfishv0.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
       "RelativeMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|solutionrelative:stockfishv0\\stockfishv0.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|c:\\users\\lmarkovic24\\source\\repos\\chess2\\stockfishv0\\stockfishv0.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
+      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|c:\\users\\luka\\source\\repos\\chess2\\stockfishv0\\stockfishv0.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
       "RelativeMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|solutionrelative:stockfishv0\\stockfishv0.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|c:\\users\\lmarkovic24\\source\\repos\\chess2\\stockfishv0\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|c:\\users\\luka\\source\\repos\\chess2\\stockfishv0\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{0F74939C-CE76-47D9-AAB7-5828B73DE022}|StockfishV0\\StockfishV0.csproj|solutionrelative:stockfishv0\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
@@ -46,17 +46,17 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "ChessForm.cs",
-              "DocumentMoniker": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\ChessForm.cs",
+              "DocumentMoniker": "C:\\Users\\luka\\source\\repos\\Chess2\\StockfishV0\\ChessForm.cs",
               "RelativeDocumentMoniker": "StockfishV0\\ChessForm.cs",
-              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\ChessForm.cs",
+              "ToolTip": "C:\\Users\\luka\\source\\repos\\Chess2\\StockfishV0\\ChessForm.cs",
               "RelativeToolTip": "StockfishV0\\ChessForm.cs",
-              "ViewState": "AgIAALcEAAAAAAAAAAAWwMYEAAAmAAAAAAAAAA==",
+              "ViewState": "AgIAABUFAAAAAAAAAAAMwB8FAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-06-15T12:18:31.197Z",
               "IsPinned": true,
@@ -64,27 +64,52 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Bot.cs",
-              "DocumentMoniker": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\src\\Bot.cs",
+              "DocumentMoniker": "C:\\Users\\luka\\source\\repos\\Chess2\\chessEngine\\src\\Bot.cs",
               "RelativeDocumentMoniker": "chessEngine\\src\\Bot.cs",
-              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\src\\Bot.cs",
+              "ToolTip": "C:\\Users\\luka\\source\\repos\\Chess2\\chessEngine\\src\\Bot.cs",
               "RelativeToolTip": "chessEngine\\src\\Bot.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACkAAAAgAAAAAAAAAA==",
+              "ViewState": "AgIAAFcAAAAAAAAAAAD4v3IAAABBAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-06-16T15:42:43.857Z",
               "IsPinned": true,
               "EditorCaption": ""
             },
             {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Helpers.cs",
+              "DocumentMoniker": "C:\\Users\\luka\\source\\repos\\Chess2\\chessEngine\\src\\Helpers.cs",
+              "RelativeDocumentMoniker": "chessEngine\\src\\Helpers.cs",
+              "ToolTip": "C:\\Users\\luka\\source\\repos\\Chess2\\chessEngine\\src\\Helpers.cs",
+              "RelativeToolTip": "chessEngine\\src\\Helpers.cs",
+              "ViewState": "AgIAAJ4BAAAAAAAAAAAmwKgBAAA2AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-17T14:00:26.61Z",
+              "EditorCaption": ""
+            },
+            {
               "$type": "Document",
               "DocumentIndex": 3,
               "Title": "Moves.cs",
-              "DocumentMoniker": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\src\\Moves.cs",
+              "DocumentMoniker": "C:\\Users\\luka\\source\\repos\\Chess2\\chessEngine\\src\\Moves.cs",
               "RelativeDocumentMoniker": "chessEngine\\src\\Moves.cs",
-              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\src\\Moves.cs",
+              "ToolTip": "C:\\Users\\luka\\source\\repos\\Chess2\\chessEngine\\src\\Moves.cs",
               "RelativeToolTip": "chessEngine\\src\\Moves.cs",
-              "ViewState": "AgIAAHcDAAAAAAAAAAAMwIIDAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAIYDAAAAAAAAAAAUwMEDAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-06-16T14:45:08.806Z",
               "EditorCaption": ""
@@ -93,57 +118,33 @@
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "Main.cs",
-              "DocumentMoniker": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\src\\Main.cs",
+              "DocumentMoniker": "C:\\Users\\luka\\source\\repos\\Chess2\\chessEngine\\src\\Main.cs",
               "RelativeDocumentMoniker": "chessEngine\\src\\Main.cs",
-              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\src\\Main.cs",
+              "ToolTip": "C:\\Users\\luka\\source\\repos\\Chess2\\chessEngine\\src\\Main.cs",
               "RelativeToolTip": "chessEngine\\src\\Main.cs",
-              "ViewState": "AgIAAE8AAAAAAAAAAAAewF8AAAA3AAAAAAAAAA==",
+              "ViewState": "AgIAAM0BAAAAAAAAAAAmwAsCAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-06-16T14:44:50.609Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "Class1.cs",
-              "DocumentMoniker": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\Class1.cs",
-              "RelativeDocumentMoniker": "chessEngine\\Class1.cs",
-              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\Class1.cs",
-              "RelativeToolTip": "chessEngine\\Class1.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-16T14:01:20.01Z"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 7,
               "Title": "StockfishV0",
-              "DocumentMoniker": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
+              "DocumentMoniker": "C:\\Users\\luka\\Source\\Repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
               "RelativeDocumentMoniker": "StockfishV0\\StockfishV0.csproj",
-              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
+              "ToolTip": "C:\\Users\\luka\\Source\\Repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
               "RelativeToolTip": "StockfishV0\\StockfishV0.csproj",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
               "WhenOpened": "2026-06-15T15:26:34.932Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "ChessForm.cs [Design]",
-              "DocumentMoniker": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\ChessForm.cs",
-              "RelativeDocumentMoniker": "StockfishV0\\ChessForm.cs",
-              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\ChessForm.cs [Design]",
-              "RelativeToolTip": "StockfishV0\\ChessForm.cs [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-15T12:30:40.142Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 8,
               "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\Program.cs",
+              "DocumentMoniker": "C:\\Users\\luka\\source\\repos\\Chess2\\StockfishV0\\Program.cs",
               "RelativeDocumentMoniker": "StockfishV0\\Program.cs",
-              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\Program.cs",
+              "ToolTip": "C:\\Users\\luka\\source\\repos\\Chess2\\StockfishV0\\Program.cs",
               "RelativeToolTip": "StockfishV0\\Program.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
@@ -153,13 +154,24 @@
               "$type": "Document",
               "DocumentIndex": 6,
               "Title": "StockfishV0.csproj",
-              "DocumentMoniker": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
+              "DocumentMoniker": "C:\\Users\\luka\\Source\\Repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
               "RelativeDocumentMoniker": "StockfishV0\\StockfishV0.csproj",
-              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
+              "ToolTip": "C:\\Users\\luka\\Source\\Repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
               "RelativeToolTip": "StockfishV0\\StockfishV0.csproj",
               "ViewState": "AgIAABIAAAAAAAAAAAAswDwAAABDAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
               "WhenOpened": "2026-06-15T12:17:45.004Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "ChessForm.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\luka\\source\\repos\\Chess2\\StockfishV0\\ChessForm.cs",
+              "RelativeDocumentMoniker": "StockfishV0\\ChessForm.cs",
+              "ToolTip": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\ChessForm.cs [Design]",
+              "RelativeToolTip": "..\\..\\..\\..\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\ChessForm.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-15T12:30:40.142Z"
             }
           ]
         }
