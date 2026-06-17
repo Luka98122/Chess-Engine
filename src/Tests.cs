@@ -76,39 +76,39 @@ namespace ChessEngine
             RunTest("15. Black Pawn Promotion (Capture)", SetupBoard((6, 12), (1, 3)), 1, 6, 12);
 
             // --- 7. CASTLING TESTS ---
-            RunTest("16. White Castling (Kingside & Queenside Open)", 
+            RunTest("16. White Castling (Kingside & Queenside Open)",
                 SetupBoard((5, 4), (3, 0), (3, 7)), // King e1, Rooks a1 and h1
                 0, 5, 4);
 
-            RunTest("17. Black Castling (Kingside & Queenside Open)", 
+            RunTest("17. Black Castling (Kingside & Queenside Open)",
                 SetupBoard((11, 60), (9, 56), (9, 63)), // King e8, Rooks a8 and h8
                 1, 11, 60);
 
-            RunTest("18. Castling Through Check (Blocked by Enemy Rook)", 
+            RunTest("18. Castling Through Check (Blocked by Enemy Rook)",
                 SetupBoard(
                     (5, 4),  // White King e1
                     (3, 7),  // White Rook h1
                     (9, 61)  // Black Rook f8 (attacking f1, preventing castling)
-                ), 
+                ),
                 0, 5, 4);
 
 
 
             // --- 9. ABSOLUTE PIN TESTS ---
-            RunTest("20. Absolute Pin (Pawn Pinned to King - Cannot move)", 
+            RunTest("20. Absolute Pin (Pawn Pinned to King - Cannot move)",
                 SetupBoard(
                     (5, 4),   // White King e1
                     (0, 12),  // White Pawn e2
                     (9, 60)   // Black Rook e8
-                ), 
+                ),
                 0, 0, 12);
 
-            RunTest("21. Pinned Piece Can Capture Pinner", 
+            RunTest("21. Pinned Piece Can Capture Pinner",
                 SetupBoard(
                     (5, 4),   // White King e1
                     (3, 28),  // White Rook e4
                     (10, 60)  // Black Queen e8
-                ), 
+                ),
                 0, 3, 28);
 
             OpeningMoveTest();
@@ -117,11 +117,11 @@ namespace ChessEngine
         private static Board SetupBoard(params (int pieceType, int square)[] placements)
         {
             Board b = new Board();
-            
+
             // 1. Clear standard array AND wipe all default castling rights
             for (int i = 0; i < 12; i++) b.Pieces[i] = 0UL;
-            b.CastlingRights = 0; 
-            
+            b.CastlingRights = 0;
+
             bool hasWhiteKing = false;
             bool hasBlackKing = false;
 
@@ -139,7 +139,7 @@ namespace ChessEngine
                 if ((b.Pieces[3] & (1UL << 7)) != 0) b.CastlingRights |= 1; // Kingside
                 if ((b.Pieces[3] & (1UL << 0)) != 0) b.CastlingRights |= 2; // Queenside
             }
-            
+
             if ((b.Pieces[11] & (1UL << 60)) != 0) // Black King on e8
             {
                 if ((b.Pieces[9] & (1UL << 63)) != 0) b.CastlingRights |= 4; // Kingside
@@ -157,10 +157,10 @@ namespace ChessEngine
         {
             b.SideToMove = color;
             Span<Move> moves = stackalloc Move[500];
-            
+
             // Extract the bitboard of just the specific piece type we are testing
             ulong pieceBitboard = targetPieceType == -1 ? 0UL : b.Pieces[targetPieceType];
-            
+
             int count = allMoves.GenerateAllLegalMoves(b, moves, color);
 
             // Convert the Move span back into a raw bitboard for visualization
@@ -175,7 +175,7 @@ namespace ChessEngine
             }
 
             RenderSideBySide(title, b, attackBitboard, count);
-            
+
             // Render formatted moves under the board
             showMoves2(b, moves.Slice(0, count));
         }
@@ -183,7 +183,7 @@ namespace ChessEngine
         private static void RenderSideBySide(string title, Board b, ulong attacks, int moveCount)
         {
             char[] pieceChars = { 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k' };
-            
+
             Console.WriteLine($"\n--- {title} ---");
             Console.WriteLine($"Generated {moveCount} valid moves.");
             Console.WriteLine("  Board State              Attack Map");
@@ -197,7 +197,7 @@ namespace ChessEngine
                 {
                     int square = rank * 8 + file;
                     char printChar = '.';
-                    
+
                     for (int pt = 0; pt < 12; pt++)
                     {
                         if ((b.Pieces[pt] & (1UL << square)) != 0)
@@ -229,7 +229,7 @@ namespace ChessEngine
                 // 3. Print them side-by-side with spacing
                 Console.WriteLine(left + "    " + right);
             }
-            
+
             Console.WriteLine("  +-----------------+      +-----------------+");
             Console.WriteLine("    a b c d e f g h          a b c d e f g h");
         }

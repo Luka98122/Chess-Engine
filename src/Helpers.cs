@@ -31,7 +31,7 @@ namespace ChessEngine
 
         public static void showMoves(Board b, Span<Move> possibleMoves)
         {
-            int movesFound = allMoves.GenerateAllLegalMoves(b, possibleMoves,b.SideToMove);
+            int movesFound = allMoves.GenerateAllLegalMoves(b, possibleMoves, b.SideToMove);
 
             ulong toSquaresBitboard = 0;
 
@@ -49,40 +49,40 @@ namespace ChessEngine
 
         public static void showMoves2(Board b, Span<Move> moves)
         {
-            
+
             Console.WriteLine($"\n=== Moves for {(b.SideToMove == 0 ? "White" : "Black")} ({moves.Length} total) ===");
-            
+
             for (int i = 0; i < moves.Length; i++)
             {
                 Move m = moves[i];
-                
+
                 string from = IndexToNotation[m.FromSquare];
                 string to = IndexToNotation[m.ToSquare];
-                
+
                 string output = $"{from} -> {to} |";
-                
-                if (m.IsCapture) 
+
+                if (m.IsCapture)
                 {
                     output += " is_capture";
                 }
-                
-                if (m.IsEnPassant) 
+
+                if (m.IsEnPassant)
                 {
                     output += " is_en_passant";
                 }
-                
-                if (m.IsCastle) 
+
+                if (m.IsCastle)
                 {
                     output += " IsCastle";
                 }
-                
-                if (m.IsPromotion) 
+
+                if (m.IsPromotion)
                 {
                     char[] pieceChars = { 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k' };
                     char promoChar = char.ToUpper(pieceChars[m.PromotedPieceType]);
                     output += $" is_promotion promotionPieceType: {promoChar}";
                 }
-                
+
                 Console.WriteLine(output);
             }
             Console.WriteLine("=========================");
@@ -95,18 +95,18 @@ namespace ChessEngine
         public static void InitializeNotationMaps()
         {
             for (int rank = 0; rank < 8; rank++)
-            
+
             {
                 for (int file = 0; file < 8; file++)
                 {
                     int index = rank * 8 + file;
-                    
+
                     // Character math: 'a' + 0 = 'a', 'a' + 1 = 'b', etc.
                     char fileChar = (char)('a' + file);
-                    
+
                     // Character math: '1' + 0 = '1', '1' + 1 = '2', etc.
                     char rankChar = (char)('1' + rank);
-                    
+
                     string notation = $"{fileChar}{rankChar}";
 
                     // Populate both dictionaries simultaneously
@@ -141,7 +141,7 @@ namespace ChessEngine
             b.Pieces[9] = 0x8100000000000000; // Rooks (a8, h8)
             b.Pieces[10] = 0x0800000000000000; // Queen (d8)
             b.Pieces[11] = 0x1000000000000000; // King (e8)
-            
+
             b.SideToMove = 0; // White's turn to move
         }
 
@@ -153,12 +153,12 @@ namespace ChessEngine
             char[] pieceChars = { 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k' };
 
             Console.WriteLine("  +-----------------+");
-            
+
             // Loop backwards from Rank 8 down to Rank 1 so the board prints right-side up
             for (int rank = 7; rank >= 0; rank--)
             {
                 Console.Write($"{rank + 1} | ");
-                
+
                 for (int file = 0; file < 8; file++)
                 {
                     int square = rank * 8 + file;
@@ -198,20 +198,20 @@ namespace ChessEngine
 
                 int leftPad = (boardWidth - displayTitle.Length) / 2;
                 int rightPad = boardWidth - displayTitle.Length - leftPad;
-                
+
                 Console.WriteLine("  " + new string('=', leftPad) + displayTitle + new string('=', rightPad));
             }
 
             Console.WriteLine("  +-----------------+");
-            
+
             for (int rank = 7; rank >= 0; rank--)
             {
                 Console.Write($"{rank + 1} | ");
-                
+
                 for (int file = 0; file < 8; file++)
                 {
                     int square = rank * 8 + file;
-                    
+
                     if ((board & (1UL << square)) != 0)
                     {
                         Console.Write("1 ");
@@ -225,7 +225,7 @@ namespace ChessEngine
             }
             Console.WriteLine("  +-----------------+");
             Console.WriteLine("    a b c d e f g h");
-            
+
             // Print the raw value for easy copy-pasting
             Console.WriteLine($"Dec : {board}\n");
         }

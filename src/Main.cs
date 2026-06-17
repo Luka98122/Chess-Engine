@@ -6,37 +6,6 @@ using System.Reflection.PortableExecutable;
 using ChessEngine;
 using static ChessEngine.EngineHelpers;
 using static ChessEngine.KnightMoveGenerator;
-//MagicFinder.GenerateAllBishopMagics();
-init();
-
-
-// 1. Make the board and set up the standard starting position
-Board board = new Board();
-InitializeStartingPosition(board);
-
-Console.WriteLine("=== Initial Board State ===");
-RenderBoard(board);
-// possibleMoves je span koji se passuje u skoro sve
-Span<Move> possibleMoves = new Move[500];
-showMoves2(board, possibleMoves);
-
-Move moveE4 = new Move(from: 12, to: 28, piece: 0);
-board.MakeMove(moveE4);
-showMoves2(board, possibleMoves);
-
-Move moveC5 = new Move(from: 50, to: 34, piece: 6);
-board.MakeMove(moveC5);
-showMoves2(board, possibleMoves);
-RenderBoard(board);
-
-// 3. Render the board state again to show the move
-Console.WriteLine("\n=== Board State after e2-e4 ===");
-RenderBoard(board);
-
-AnalyzePosition(board);
-
-Tests.allTests();
-
 
 
 namespace ChessEngine
@@ -46,7 +15,7 @@ namespace ChessEngine
         public int FromSquare;
         public int ToSquare;
         public int PieceType;
-        
+
         // Flags for special moves
         public bool IsCapture;
         public bool IsPromotion;
@@ -60,7 +29,7 @@ namespace ChessEngine
             ToSquare = to;
             PieceType = piece;
             IsCapture = isCapture;
-            
+
             // Defaults
             IsPromotion = false;
             PromotedPieceType = -1;
@@ -73,7 +42,7 @@ namespace ChessEngine
     {
         // Holds a complete copy of the board's piece arrays
         public ulong[] Pieces;
-        
+
         // Game state variables
         public int SideToMove;
         public byte CastlingRights;
@@ -83,7 +52,7 @@ namespace ChessEngine
         public BoardSnapshot(ulong[] currentPieces, int side, byte castling, int ep, int halfMove)
         {
             Pieces = (ulong[])currentPieces.Clone();
-            
+
             SideToMove = side;
             CastlingRights = castling;
             EnPassantSquare = ep;
@@ -98,7 +67,7 @@ namespace ChessEngine
         public ulong[] Pieces = new ulong[12];
 
         public int SideToMove = 0; // 0 for White, 1 for Black
-        public byte CastlingRights = 15; 
+        public byte CastlingRights = 15;
         public int EnPassantSquare = -1;
         public int HalfMoveClock = 0;
         // 15 represents binary 1111 (all castling rights intact)
@@ -126,14 +95,14 @@ namespace ChessEngine
 
             // 2. Apply the move
             // Remove piece from source square by clearing the bit
-            Pieces[move.PieceType] &= ~(1UL << move.FromSquare); 
+            Pieces[move.PieceType] &= ~(1UL << move.FromSquare);
             // Add piece to target square by setting the bit
             Pieces[move.PieceType] |= (1UL << move.ToSquare);
 
             if (move.IsCastle)
             {
                 int rookType = SideToMove == 0 ? 3 : 9;
-                
+
                 if (move.ToSquare == 6) // White Kingside (g1)
                 {
                     Pieces[rookType] &= ~(1UL << 7); // Remove rook from h1
@@ -173,7 +142,7 @@ namespace ChessEngine
 
             if (move.IsPromotion)
             {
-                Pieces[0+6*SideToMove] &= ~(1UL << move.ToSquare);
+                Pieces[0 + 6 * SideToMove] &= ~(1UL << move.ToSquare);
                 Pieces[move.PromotedPieceType + 6 * SideToMove] |= (1UL << move.ToSquare);
             }
 
@@ -189,7 +158,7 @@ namespace ChessEngine
             // 2. Overwrite the current arrays and variables with the snapshot data
             // Array.Copy overwrites the existing array without allocating new memory
             Array.Copy(previousState.Pieces, Pieces, 12);
-            
+
             SideToMove = previousState.SideToMove;
             CastlingRights = previousState.CastlingRights;
             EnPassantSquare = previousState.EnPassantSquare;
@@ -212,15 +181,15 @@ namespace ChessEngine
 
         public bool IsSquareAttacked(int square, int attackerColor)
         {
-            if (square<0 || square>63) return false;
-            ulong friendlyPieces = attackerColor == 0 
+            if (square < 0 || square > 63) return false;
+            ulong friendlyPieces = attackerColor == 0
                 ? (Pieces[0] | Pieces[1] | Pieces[2] | Pieces[3] | Pieces[4] | Pieces[5])
                 : (Pieces[6] | Pieces[7] | Pieces[8] | Pieces[9] | Pieces[10] | Pieces[11]);
-                
+
             ulong enemyPieces = attackerColor == 0
                 ? (Pieces[6] | Pieces[7] | Pieces[8] | Pieces[9] | Pieces[10] | Pieces[11])
                 : (Pieces[0] | Pieces[1] | Pieces[2] | Pieces[3] | Pieces[4] | Pieces[5]);
-                
+
             ulong occupied = friendlyPieces | enemyPieces;
             ulong squareBB = 1UL << square;
 
@@ -260,7 +229,7 @@ namespace ChessEngine
 
             return false;
         }
-        
+
         public int GetBoardState()
         {
             Span<Move> moves = stackalloc Move[218]; // mnogo brze od heap memorije
@@ -276,7 +245,8 @@ namespace ChessEngine
             int kingSquare = BitOperations.TrailingZeroCount(this.Pieces[kingPieceType]);
             int attackerColor = 1 - this.SideToMove;
 
-            if (this.IsSquareAttacked(kingSquare, attackerColor)){
+            if (this.IsSquareAttacked(kingSquare, attackerColor))
+            {
                 return attackerColor; // attackerColor wins
             }
             return 2; // Stalemate (pat)
@@ -320,7 +290,7 @@ namespace ChessEngine
         }
 
         public static List<int> vals = new List<int> { 100, 300, 300, 500, 900, 6767, -100, -300, -300, -500, -900, -6767 };
-        public int GetBoardEval(int depth=1)
+        public int GetBoardEval(int depth = 1)
         {
             //-1000 crni dominatuje
             //+1000 beli dominatuje
@@ -332,16 +302,44 @@ namespace ChessEngine
             if (state == 1) return -100000; // Crni (1) je uradio checkmate na belog
 
             // Piece eval
-            
+
             int score = 0;
-            for (int i = 0; i < 12; i++)
+            for (int pt = 0; pt < 12; pt++)
             {
-                score += BitOperations.PopCount(this.Pieces[i]) * vals[i];
-                // PopCount = # of 1s in binary rep of a number (bitboard)
+                ulong bitboard = this.Pieces[pt];
+                bool isBlack = pt > 5;
+
+                // Grab absolute material value from your Board.vals array
+                int materialValue = Math.Abs(vals[pt]);
+
+                while (bitboard != 0)
+                {
+                    // Isolate the index of the first '1' bit
+                    int sq = System.Numerics.BitOperations.TrailingZeroCount(bitboard);
+
+                    // Get the positional bonus from our tables
+                    int positionalBonus = PST.GetScore(pt, sq);
+
+                    // Combine material and positional value
+                    int pieceScore = materialValue + positionalBonus;
+
+                    // Add for White, subtract for Black
+                    if (isBlack)
+                    {
+                        score -= pieceScore;
+                    }
+                    else
+                    {
+                        score += pieceScore;
+                    }
+
+                    // Clear the least significant set bit (fastest way to loop through pieces)
+                    bitboard &= bitboard - 1;
+                }
             }
 
             // Check eval:
-            
+
             int wKingSquare = BitOperations.TrailingZeroCount(this.Pieces[5]);
             bool isWInCheck = this.IsSquareAttacked(wKingSquare, 1); //black attacking white king
             if (isWInCheck)
@@ -416,5 +414,4 @@ namespace ChessEngine
         }
     }
 }
-
 

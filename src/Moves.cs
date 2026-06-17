@@ -42,19 +42,19 @@ namespace ChessEngine
             int moveCount = 0;
 
             // 1. Calculate Friendly and Enemy piece bitboards
-            ulong friendlyPieces = color == 0 
+            ulong friendlyPieces = color == 0
                 ? (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5])
                 : (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11]);
-                
+
             ulong enemyPieces = color == 0
                 ? (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11])
                 : (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5]);
 
             // Knights can jump anywhere, as long as they don't land on a friendly piece
             ulong validSquares = ~friendlyPieces;
-            
+
             // PieceType: White Knight = 1, Black Knight = 7
-            int pieceType = color == 0 ? 1 : 7; 
+            int pieceType = color == 0 ? 1 : 7;
 
             // 2. Iterate ONLY over the squares that actually contain a knight
             ulong knightsIter = knights;
@@ -71,7 +71,7 @@ namespace ChessEngine
                 while (attacksIter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(attacksIter);
-                    
+
                     // A move is a capture if the destination square intersects with the enemy piece bitboard
                     bool isCapture = (enemyPieces & (1UL << toSquare)) != 0;
 
@@ -132,7 +132,7 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, moveCount, toSquare-8, toSquare, 0, false);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare - 8, toSquare, 0, false);
                     iter &= iter - 1; // Clears the least significant '1' bit
                 }
 
@@ -175,7 +175,7 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, moveCount, toSquare+8, toSquare, 6, false);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare + 8, toSquare, 6, false);
                     iter &= iter - 1;
                 }
 
@@ -215,16 +215,16 @@ namespace ChessEngine
             return moveCount;
         }
     }
-    
+
     public static class RookMoveGenerator
     {
         // 1. Core Arrays for Magic Bitboards
         public static ulong[] RookMasks = new ulong[64];
         public static ulong[][] RookAttacks = new ulong[64][];
-        
-        
+
+
         public static int[] RookRelevantBits = new int[64];
-        
+
         public static readonly ulong[] RookMagics = new ulong[64] {
             0x0A80011040008060UL, // Square 0
             0x424000E000401000UL, // Square 1
@@ -297,10 +297,10 @@ namespace ChessEngine
             int moveCount = 0;
 
             // 1. Calculate bitboards
-            ulong friendlyPieces = color == 0 
+            ulong friendlyPieces = color == 0
                 ? (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5])
                 : (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11]);
-                
+
             ulong enemyPieces = color == 0
                 ? (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11])
                 : (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5]);
@@ -315,10 +315,10 @@ namespace ChessEngine
 
                 // Relevant blocker maska
                 ulong blockers = occupied & RookMasks[fromSquare];
-                
+
                 // blockers je jedinstven bitboard layout za relevant blocker mask
                 int magicIndex = (int)((blockers * RookMagics[fromSquare]) >> (64 - RookRelevantBits[fromSquare]));
-                
+
                 // O(1) provera i invalidiranje napadanje svojih figura
                 ulong attacks = RookAttacks[fromSquare][magicIndex] & ~friendlyPieces;
 
@@ -327,7 +327,7 @@ namespace ChessEngine
                 {
                     int toSquare = BitOperations.TrailingZeroCount(attacksIter);
                     bool isCapture = (enemyPieces & (1UL << toSquare)) != 0;
-                    
+
                     moves[moveCount++] = new Move(fromSquare, toSquare, pieceType, isCapture);
                     attacksIter &= attacksIter - 1;
                 }
@@ -350,7 +350,7 @@ namespace ChessEngine
                 int permutationCount = 1 << RookRelevantBits[square];
                 RookAttacks[square] = new ulong[permutationCount];
 
-                
+
                 ulong mask = RookMasks[square];
                 ulong blockerPattern = 0; // Carry-Rippler
 
@@ -358,13 +358,13 @@ namespace ChessEngine
                 {
                     // Magican index u koji cemo svrstati keshiran rez
                     int magicIndex = (int)((blockerPattern * RookMagics[square]) >> (64 - RookRelevantBits[square]));
-                    
+
                     // Naivno izracunamo moguce poteze i keshiramo
                     RookAttacks[square][magicIndex] = CalculateNaiveRookAttacks(square, blockerPattern);
 
                     // Carry-rippler trick (efikasno dodje do sledece podmaske)
                     blockerPattern = (blockerPattern - mask) & mask;
-                } 
+                }
                 while (blockerPattern != 0);
             }
         }
@@ -376,28 +376,28 @@ namespace ChessEngine
             int f = square % 8;
 
             // North
-            for (int i = r + 1; i <= 6; i++) 
+            for (int i = r + 1; i <= 6; i++)
             {
                 int targetSquare = i * 8 + f;
                 mask |= (1UL << targetSquare);
             }
-            
+
             // South
-            for (int i = r - 1; i >= 1; i--) 
+            for (int i = r - 1; i >= 1; i--)
             {
                 int targetSquare = i * 8 + f;
                 mask |= (1UL << targetSquare);
             }
-            
+
             // East
-            for (int i = f + 1; i <= 6; i++) 
+            for (int i = f + 1; i <= 6; i++)
             {
                 int targetSquare = r * 8 + i;
                 mask |= (1UL << targetSquare);
             }
-            
+
             // West
-            for (int i = f - 1; i >= 1; i--) 
+            for (int i = f - 1; i >= 1; i--)
             {
                 int targetSquare = r * 8 + i;
                 mask |= (1UL << targetSquare);
@@ -413,57 +413,57 @@ namespace ChessEngine
             int f = square % 8;
 
             // North
-            for (int i = r + 1; i <= 7; i++) 
+            for (int i = r + 1; i <= 7; i++)
             {
                 int targetSquare = i * 8 + f;
                 ulong squareMask = 1UL << targetSquare;
-                
-                attacks |= squareMask; 
-                
+
+                attacks |= squareMask;
+
                 // Ako se poklapa bar jedan blocker onda prestajemo
-                if ((blockers & squareMask) != 0) 
+                if ((blockers & squareMask) != 0)
                 {
                     break;
                 }
             }
-            
+
             // South
-            for (int i = r - 1; i >= 0; i--) 
+            for (int i = r - 1; i >= 0; i--)
             {
                 int targetSquare = i * 8 + f;
                 ulong squareMask = 1UL << targetSquare;
-                
-                attacks |= squareMask; 
-                
-                if ((blockers & squareMask) != 0) 
+
+                attacks |= squareMask;
+
+                if ((blockers & squareMask) != 0)
                 {
                     break;
                 }
             }
-            
+
             // East
-            for (int i = f + 1; i <= 7; i++) 
+            for (int i = f + 1; i <= 7; i++)
             {
                 int targetSquare = r * 8 + i;
                 ulong squareMask = 1UL << targetSquare;
-                
-                attacks |= squareMask; 
-                
-                if ((blockers & squareMask) != 0) 
+
+                attacks |= squareMask;
+
+                if ((blockers & squareMask) != 0)
                 {
                     break;
                 }
             }
-            
+
             // West
-            for (int i = f - 1; i >= 0; i--) 
+            for (int i = f - 1; i >= 0; i--)
             {
                 int targetSquare = r * 8 + i;
                 ulong squareMask = 1UL << targetSquare;
-                
-                attacks |= squareMask; 
-                
-                if ((blockers & squareMask) != 0) 
+
+                attacks |= squareMask;
+
+                if ((blockers & squareMask) != 0)
                 {
                     break;
                 }
@@ -479,7 +479,7 @@ namespace ChessEngine
         public static ulong[][] BishopAttacks = new ulong[64][];
         public static int[] BishopRelevantBits = new int[64];
 
-        
+
         public static readonly ulong[] BishopMagics = new ulong[64] {
             0x800202680E008200UL, // Square 0
             0x1010020801102004UL, // Square 1
@@ -551,10 +551,10 @@ namespace ChessEngine
         {
             int moveCount = 0;
 
-            ulong friendlyPieces = color == 0 
+            ulong friendlyPieces = color == 0
                 ? (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5])
                 : (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11]);
-                
+
             ulong enemyPieces = color == 0
                 ? (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11])
                 : (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5]);
@@ -576,7 +576,7 @@ namespace ChessEngine
                 {
                     int toSquare = BitOperations.TrailingZeroCount(attacksIter);
                     bool isCapture = (enemyPieces & (1UL << toSquare)) != 0;
-                    
+
                     moves[moveCount++] = new Move(fromSquare, toSquare, pieceType, isCapture);
                     attacksIter &= attacksIter - 1;
                 }
@@ -598,14 +598,14 @@ namespace ChessEngine
                 BishopAttacks[square] = new ulong[permutationCount];
 
                 ulong mask = BishopMasks[square];
-                ulong blockerPattern = 0; 
+                ulong blockerPattern = 0;
 
                 do
                 {
                     int magicIndex = (int)((blockerPattern * BishopMagics[square]) >> (64 - BishopRelevantBits[square]));
                     BishopAttacks[square][magicIndex] = CalculateNaiveBishopAttacks(square, blockerPattern);
                     blockerPattern = (blockerPattern - mask) & mask;
-                } 
+                }
                 while (blockerPattern != 0);
             }
         }
@@ -658,9 +658,9 @@ namespace ChessEngine
             {
                 int targetSquare = i * 8 + j;
                 ulong squareMask = 1UL << targetSquare;
-                
+
                 attacks |= squareMask;
-                
+
                 if ((blockers & squareMask) != 0)
                 {
                     break;
@@ -672,9 +672,9 @@ namespace ChessEngine
             {
                 int targetSquare = i * 8 + j;
                 ulong squareMask = 1UL << targetSquare;
-                
+
                 attacks |= squareMask;
-                
+
                 if ((blockers & squareMask) != 0)
                 {
                     break;
@@ -686,9 +686,9 @@ namespace ChessEngine
             {
                 int targetSquare = i * 8 + j;
                 ulong squareMask = 1UL << targetSquare;
-                
+
                 attacks |= squareMask;
-                
+
                 if ((blockers & squareMask) != 0)
                 {
                     break;
@@ -700,9 +700,9 @@ namespace ChessEngine
             {
                 int targetSquare = i * 8 + j;
                 ulong squareMask = 1UL << targetSquare;
-                
+
                 attacks |= squareMask;
-                
+
                 if ((blockers & squareMask) != 0)
                 {
                     break;
@@ -719,10 +719,10 @@ namespace ChessEngine
         {
             int moveCount = 0;
 
-            ulong friendlyPieces = color == 0 
+            ulong friendlyPieces = color == 0
                 ? (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5])
                 : (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11]);
-                
+
             ulong enemyPieces = color == 0
                 ? (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11])
                 : (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5]);
@@ -753,7 +753,7 @@ namespace ChessEngine
                 {
                     int toSquare = BitOperations.TrailingZeroCount(attacksIter);
                     bool isCapture = (enemyPieces & (1UL << toSquare)) != 0;
-                    
+
                     moves[moveCount++] = new Move(fromSquare, toSquare, pieceType, isCapture);
                     attacksIter &= attacksIter - 1;
                 }
@@ -771,7 +771,7 @@ namespace ChessEngine
         public static void PreCalculateKingMoves()
         {
             int[] dy = { -1, -1, -1, 0, 1, 1, 1, 0 };
-            int[] dx = { -1, 0, 1  , 1, 1, 0, -1, -1 };
+            int[] dx = { -1, 0, 1, 1, 1, 0, -1, -1 };
 
             for (int y = 0; y < 8; y++)
             {
@@ -851,7 +851,7 @@ namespace ChessEngine
                         }
                     }
                 }
-                
+
                 // Queenside (Bit 1 is set)
                 if ((b.CastlingRights & 2) != 0)
                 {
@@ -881,7 +881,7 @@ namespace ChessEngine
                         }
                     }
                 }
-                
+
                 // Queenside (Bit 3 is set)
                 if ((b.CastlingRights & 8) != 0)
                 {
@@ -901,7 +901,8 @@ namespace ChessEngine
         }
     }
 
-    public static class allMoves {
+    public static class allMoves
+    {
         public static int GenerateAllPseudoLegalMoves(Board b, Span<Move> moves, int col)
         {
             int totalMoves = 0;
@@ -936,19 +937,19 @@ namespace ChessEngine
         {
             int generatedMoves = GenerateAllPseudoLegalMoves(b, moves, col);
             int ind = 0;
-            
+
             int kingPieceType = col == 0 ? 5 : 11;
             int attackerCol = 1 - col;
 
             for (int i = 0; i < generatedMoves; i++)
             {
                 b.MakeMove(moves[i]);
-                
+
                 int kingSquare = BitOperations.TrailingZeroCount(b.Pieces[kingPieceType]);
                 bool isValid = !b.IsSquareAttacked(kingSquare, attackerCol);
-                
+
                 b.UnmakeMove();
-                
+
                 if (isValid)
                 {
                     moves[ind++] = moves[i];
