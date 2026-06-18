@@ -42,47 +42,47 @@ namespace ChessEngine
         public int Depth;
         public int Score;
         public int Flag; // 0 = Exact, 1 = Alpha (Upper bound), 2 = Beta (Lower bound)
+        public Move BestMove;
     }
 
     public static class TT
     {
-        // 0x400000 is ~4.1 million entries (adjust based on desired memory usage)
-        private const int Size = 0x400000;
+        private const int Size = 0x1000000;
+        private const int SizeMask = Size - 1;
         public static TTEntry[] Entries = new TTEntry[Size];
         public static int CacheHits = 0;
-        public static void Store(ulong key, int depth, int score, int flag)
+        private static int filledEntries = 0;
+        public static void Store(ulong key, int depth, int score, int flag, Move bestMove)
         {
-            int index = (int)(key % Size);
+            int index = (int)(key & SizeMask);
             ref TTEntry existing = ref Entries[index];
+
+            if (existing.Key == 0)
+            {
+                int currentFilled = Interlocked.Increment(ref filledEntries);
+            }
+
             if (existing.Key != key || depth >= existing.Depth)
             {
-                existing = new TTEntry { Key = key, Depth = depth, Score = score, Flag = flag };
+                existing = new TTEntry { Key = key, Depth = depth, Score = score, Flag = flag, BestMove = bestMove };
             }
         }
 
-        public static bool TryProbe(ulong key, int depth, int alpha, int beta, out int score)
+        public static bool TryProbe(ulong key, int depth, int alpha, int beta, out int score, out Move bestMove)
         {
             score = 0;
-            TTEntry entry = Entries[key % Size];
+            bestMove = default;
+            int index = (int)(key & SizeMask);
+            TTEntry entry = Entries[index];
 
-            // Ensure no collision and that the cached depth is sufficient
-            if (entry.Key == key && entry.Depth >= depth)
+            if (entry.Key == key)
             {
-                bool isHit = false;
-
-                if (entry.Flag == 0) { score = entry.Score; isHit = true; } // Exact
-                else if (entry.Flag == 1 && entry.Score <= alpha) { score = alpha; isHit = true; } // Upper bound
-                else if (entry.Flag == 2 && entry.Score >= beta) { score = beta; isHit = true; }   // Lower bound
-
-                // 2. If we found a valid hit, increment and check the milestone
-                if (isHit)
+                bestMove = entry.BestMove;
+                if (entry.Depth >= depth)
                 {
-                    CacheHits++;
-                    if (CacheHits % 10000 == 0)
-                    {
-                        Debug.WriteLine($"[DEBUG] Zobrist Cache Hits: {CacheHits}");
-                    }
-                    return true;
+                    if (entry.Flag == 0) { score = entry.Score; CacheHits++; return true; }
+                    else if (entry.Flag == 1 && entry.Score <= alpha) { score = alpha; CacheHits++; return true; }
+                    else if (entry.Flag == 2 && entry.Score >= beta) { score = beta; CacheHits++; return true; }
                 }
             }
             return false;
@@ -100,100 +100,75 @@ namespace ChessEngine
 
             if (m.IsPromotion)
             {
-                // Pushing a pawn to promotion is almost always a top-tier move
                 score += 9000;
             }
 
-            if (m.IsCapture)
+            if (m.IsCapture && m.CapturedPieceType >= 0)
             {
-                // LVA: Subtracting the attacker's value means a Pawn (100) 
-                // scores highly (900), while a Queen (900) scores lower (100).
-                score += 1000 - Math.Abs(Board.vals[m.PieceType]);
+                int victimValue = Math.Abs(Board.vals[m.CapturedPieceType]);
+                int attackerValue = Math.Abs(Board.vals[m.PieceType]);
+                score += victimValue * 10 - attackerValue;
             }
 
             return score;
         }
 
-        private static int QuiescenceSearch(Board b, int alpha, int beta) //shallow check at the end of depth
+        private static int QuiescenceSearch(Board b, int alpha, int beta)
         {
-            // 1. "Stand Pat" Evaluation
-            // If our position is already good enough without making any captures, 
-            // we can establish a baseline score.
             int standPat = b.GetBoardEval(includeHangingPieces: false);
             standPat = b.SideToMove == 0 ? standPat : -standPat;
 
-            // Fail-hard beta cutoff
             if (standPat >= beta)
             {
                 return beta;
             }
 
-            // Update alpha if standing pat is better than our current alpha
             if (standPat > alpha)
             {
                 alpha = standPat;
             }
 
-            // 2. Generate Moves
             Span<Move> moves = stackalloc Move[218];
-            int moveCount = allMoves.GenerateAllLegalMoves(b, moves, b.SideToMove);
+            int moveCount = allMoves.GenerateAllLegalCaptures(b, moves, b.SideToMove);
 
-            // --- MOVE ORDERING START ---
-            // Pre-score all moves to avoid O(N^2) function calls
             Span<int> moveScores = stackalloc int[moveCount];
             for (int i = 0; i < moveCount; i++)
             {
                 moveScores[i] = ScoreMove(moves[i]);
             }
 
-            // Selection sort based on pre-calculated scores
             for (int i = 0; i < moveCount - 1; i++)
             {
                 int bestIndex = i;
                 for (int j = i + 1; j < moveCount; j++)
                 {
                     if (moveScores[j] > moveScores[bestIndex])
-                    {
                         bestIndex = j;
-                    }
                 }
-
                 if (bestIndex != i)
                 {
-                    // Swap moves
                     Move tempMove = moves[i];
                     moves[i] = moves[bestIndex];
                     moves[bestIndex] = tempMove;
-
-                    // Swap scores to keep the arrays synchronized
                     int tempScore = moveScores[i];
                     moveScores[i] = moveScores[bestIndex];
                     moveScores[bestIndex] = tempScore;
                 }
             }
-            // --- MOVE ORDERING END ---
 
-            // 3. Search ONLY Captures
             for (int i = 0; i < moveCount; i++)
             {
-                // Skip quiet moves. In a fully optimized engine, you would write a separate 
-                // GenerateCaptureMoves method to avoid generating quiet moves entirely.
-                if (!moves[i].IsCapture) continue;
-
                 b.MakeMove(moves[i]);
-
-                // Recursively call QS instead of regular Search
                 int score = -QuiescenceSearch(b, -beta, -alpha);
-
                 b.UnmakeMove();
 
                 if (score >= beta)
                 {
-                    return beta; // Opponent has a refutation, prune this branch
+                    return beta;
                 }
                 if (score > alpha)
                 {
-                    alpha = score; // We found a better capture sequence
+                    alpha = score;
                 }
             }
 
@@ -244,6 +219,7 @@ namespace ChessEngine
             Move bestMoveThisTurn = moves[0];
 
             // Iterative Deepening Loop
+            var sw = Stopwatch.StartNew();
             for (int currentDepth = 1; currentDepth <= targetDepth; currentDepth++)
             {
                 int alpha = -Infinity;
@@ -269,7 +245,8 @@ namespace ChessEngine
                 }
 
                 bestMoveThisTurn = bestMoveThisDepth;
-                // Optional: Debug.WriteLine($"Depth {currentDepth} finished. Best move: {bestMoveThisTurn.FromSquare} -> {bestMoveThisTurn.ToSquare}");
+                Debug.WriteLine($"[PERF] Depth {currentDepth}/{targetDepth} took {sw.Elapsed.TotalSeconds:F2}s");
+                sw.Restart();
             }
 
             return bestMoveThisTurn;
@@ -279,89 +256,122 @@ namespace ChessEngine
         {
             int originalAlpha = alpha;
 
-            // 1. Probe Transposition Table
-            if (TT.TryProbe(b.ZobristKey, depth, alpha, beta, out int ttScore))
+            if (TT.TryProbe(b.ZobristKey, depth, alpha, beta, out int ttScore, out Move ttBestMove))
             {
                 return ttScore;
             }
 
-            // 2. Base Case
             if (depth <= 0)
             {
                 return QuiescenceSearch(b, alpha, beta);
             }
 
+            int kingType = b.SideToMove == 0 ? 5 : 11;
+            int kingSquare = BitOperations.TrailingZeroCount(b.Pieces[kingType]);
+            bool inCheck = b.IsSquareAttacked(kingSquare, 1 - b.SideToMove);
+
+            if (depth >= 3 && !inCheck)
+            {
+                int savedSTM = b.SideToMove;
+                int savedEP = b.EnPassantSquare;
+                ulong savedKey = b.ZobristKey;
+
+                b.SideToMove = 1 - b.SideToMove;
+                b.EnPassantSquare = -1;
+                b.ZobristKey ^= Zobrist.SideToMove;
+                if (savedEP != -1) b.ZobristKey ^= Zobrist.EnPassant[savedEP];
+
+                int nullScore = -Search(b, depth - 1 - 3, -beta, -beta + 1);
+
+                b.SideToMove = savedSTM;
+                b.EnPassantSquare = savedEP;
+                b.ZobristKey = savedKey;
+
+                if (nullScore >= beta)
+                    return beta;
+            }
+
             Span<Move> moves = stackalloc Move[256];
             int moveCount = allMoves.GenerateAllLegalMoves(b, moves, b.SideToMove);
 
-            // 3. Terminal Node Handling
             if (moveCount == 0)
             {
-                int kingPieceType = b.SideToMove == 0 ? 5 : 11;
-                int kingSquare = BitOperations.TrailingZeroCount(b.Pieces[kingPieceType]);
-                bool inCheck = b.IsSquareAttacked(kingSquare, 1 - b.SideToMove);
-
                 if (inCheck)
-                {
                     return -30000 - depth;
-                }
-                return 0; // Stalemate
+                return 0;
             }
 
-            // --- MOVE ORDERING START ---
-            // Pre-score all moves to avoid O(N^2) function calls
+            if (ttBestMove.FromSquare != 0 || ttBestMove.ToSquare != 0)
+            {
+                for (int i = 0; i < moveCount; i++)
+                {
+                    if (moves[i].FromSquare == ttBestMove.FromSquare &&
+                        moves[i].ToSquare == ttBestMove.ToSquare)
+                    {
+                        Move temp = moves[0];
+                        moves[0] = moves[i];
+                        moves[i] = temp;
+                        break;
+                    }
+                }
+            }
+
             Span<int> moveScores = stackalloc int[moveCount];
             for (int i = 0; i < moveCount; i++)
             {
                 moveScores[i] = ScoreMove(moves[i]);
             }
 
-            // Selection sort based on pre-calculated scores
-            for (int i = 0; i < moveCount - 1; i++)
+            for (int i = 1; i < moveCount - 1; i++)
             {
                 int bestIndex = i;
                 for (int j = i + 1; j < moveCount; j++)
                 {
                     if (moveScores[j] > moveScores[bestIndex])
-                    {
                         bestIndex = j;
-                    }
                 }
-
                 if (bestIndex != i)
                 {
-                    // Swap moves
                     Move tempMove = moves[i];
                     moves[i] = moves[bestIndex];
                     moves[bestIndex] = tempMove;
-
-                    // Swap scores to keep the arrays synchronized
                     int tempScore = moveScores[i];
                     moveScores[i] = moveScores[bestIndex];
                     moveScores[bestIndex] = tempScore;
                 }
             }
-            // --- MOVE ORDERING END ---
 
             int bestScore = -int.MaxValue;
+            Move bestMoveInNode = moves[0];
 
-            // 4. Negamax Loop
             for (int i = 0; i < moveCount; i++)
             {
                 b.MakeMove(moves[i]);
-                int score = -Search(b, depth - 1, -beta, -alpha);
+
+                int score;
+                if (i >= 4 && depth >= 3 && !moves[i].IsCapture && !moves[i].IsPromotion)
+                {
+                    score = -Search(b, depth - 1 - 2, -alpha - 1, -alpha);
+                    if (score > alpha)
+                        score = -Search(b, depth - 1, -beta, -alpha);
+                }
+                else
+                {
+                    score = -Search(b, depth - 1, -beta, -alpha);
+                }
+
                 b.UnmakeMove();
 
-                // Fail-hard beta cutoff
                 if (score >= beta)
                 {
-                    TT.Store(b.ZobristKey, depth, beta, 2);
+                    TT.Store(b.ZobristKey, depth, beta, 2, moves[i]);
                     return beta;
                 }
 
                 if (score > bestScore)
                 {
                     bestScore = score;
+                    bestMoveInNode = moves[i];
                     if (score > alpha)
                     {
                         alpha = score;
@@ -369,14 +379,13 @@ namespace ChessEngine
                 }
             }
 
-            // 5. TT Storage
-            int flag = 0; // Exact Bound
+            int flag = 0;
             if (bestScore <= originalAlpha)
             {
-                flag = 1; // Upper Bound (Failed low)
+                flag = 1;
             }
 
-            TT.Store(b.ZobristKey, depth, bestScore, flag);
+            TT.Store(b.ZobristKey, depth, bestScore, flag, bestMoveInNode);
             return bestScore;
         }
     }

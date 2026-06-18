@@ -27,33 +27,39 @@
     ]
   },
   "packageFolders": {
-    "/home/luka/.nuget/packages/": {}
+    "C:\\Users\\lmarkovic24\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/luka/src/repos/Chess2/StockfishV0/StockfishV0.csproj",
+      "projectUniqueName": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
       "projectName": "StockfishV0",
-      "projectPath": "/home/luka/src/repos/Chess2/StockfishV0/StockfishV0.csproj",
-      "packagesPath": "/home/luka/.nuget/packages/",
-      "outputPath": "/home/luka/src/repos/Chess2/StockfishV0/obj/",
+      "projectPath": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\StockfishV0.csproj",
+      "packagesPath": "C:\\Users\\lmarkovic24\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\StockfishV0\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "/home/luka/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\lmarkovic24\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net8.0-windows"
       ],
       "sources": {
-        "/usr/lib/dotnet/library-packs": {},
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "projectReferences": {
-            "/home/luka/src/repos/Chess2/chessEngine/chessEngine.csproj": {
-              "projectPath": "/home/luka/src/repos/Chess2/chessEngine/chessEngine.csproj"
+            "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\chessEngine.csproj": {
+              "projectPath": "C:\\Users\\lmarkovic24\\source\\repos\\Chess2\\chessEngine\\chessEngine.csproj"
             }
           }
         }
@@ -68,7 +74,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net8.0-windows7.0": {
@@ -84,16 +90,6 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.NETCore.App.Host.linux-x64",
-            "version": "[8.0.28, 8.0.28]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[8.0.28, 8.0.28]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
@@ -102,7 +98,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.109/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

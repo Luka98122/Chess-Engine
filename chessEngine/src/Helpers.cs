@@ -136,6 +136,7 @@ namespace ChessEngine
             b.Pieces[11] = 0x1000000000000000; // King (e8)
 
             b.SideToMove = 0; // White's turn to move
+            b.ComputeInitialOccupancy();
         }
 
         public static bool TryLoadFen(Board b, string fen, out string error)
@@ -293,6 +294,8 @@ namespace ChessEngine
             }
 
             RemoveImpossibleCastlingRights(b);
+
+            b.ComputeInitialOccupancy();
 
             return true;
         }

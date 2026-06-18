@@ -23,6 +23,7 @@ namespace ChessEngine
         public int PromotedPieceType;
         public bool IsEnPassant;
         public bool IsCastle;
+        public int CapturedPieceType;
 
         public Move(int from, int to, int piece, bool isCapture = false)
         {
@@ -36,6 +37,7 @@ namespace ChessEngine
             PromotedPieceType = -1;
             IsEnPassant = false;
             IsCastle = false;
+            CapturedPieceType = -1;
         }
     }
 
@@ -48,6 +50,9 @@ namespace ChessEngine
         public int HalfMoveClock;
         public int GameType;
         public ulong ZobristKey;
+        public ulong WhiteOccupancy;
+        public ulong BlackOccupancy;
+        public int PieceCount;
     }
 
     public class Board
@@ -61,6 +66,10 @@ namespace ChessEngine
         public int EnPassantSquare = -1;
         public int HalfMoveClock = 0;
         public int GameType = 0; // 0 - Early, 1 - Mid, 2 - End
+        public int PieceCount;
+        public ulong WhiteOccupancy;
+        public ulong BlackOccupancy;
+        public ulong Occupied => WhiteOccupancy | BlackOccupancy;
         // 15 represents binary 1111 (all castling rights intact)
         public static readonly byte[] CastlingRightsMask = new byte[64] {
             13, 15, 15, 15, 12, 15, 15, 14, // Rank 1 (a1=13, e1=12, h1=14)
@@ -120,11 +129,23 @@ namespace ChessEngine
             state.GameType = GameType;
             state.CapturedPieceType = -1;
             state.ZobristKey = this.ZobristKey;
+            state.WhiteOccupancy = WhiteOccupancy;
+            state.BlackOccupancy = BlackOccupancy;
+            state.PieceCount = PieceCount;
+
+            byte oldCastlingRights = CastlingRights;
+            int oldEP = EnPassantSquare; 
+            ulong zobristDelta = 0;
 
             EnPassantSquare = -1;
 
             CastlingRights &= CastlingRightsMask[move.FromSquare];
             CastlingRights &= CastlingRightsMask[move.ToSquare];
+            if (oldCastlingRights != CastlingRights)
+            {
+                zobristDelta ^= Zobrist.Castling[oldCastlingRights];
+                zobristDelta ^= Zobrist.Castling[CastlingRights];
+            }
 
             if (move.IsEnPassant)
             {
@@ -132,6 +153,10 @@ namespace ChessEngine
                 int opponentPawnType = SideToMove == 0 ? 6 : 0;
                 state.CapturedPieceType = opponentPawnType;
                 Pieces[opponentPawnType] &= ~(1UL << capturedPawnSquare);
+                zobristDelta ^= Zobrist.Pieces[opponentPawnType, capturedPawnSquare];
+                if (SideToMove == 0) BlackOccupancy &= ~(1UL << capturedPawnSquare);
+                else WhiteOccupancy &= ~(1UL << capturedPawnSquare);
+                PieceCount--;
                 HalfMoveClock = 0;
             }
             else if (move.IsCapture)
@@ -145,9 +170,13 @@ namespace ChessEngine
                     {
                         state.CapturedPieceType = i;
                         Pieces[i] &= ~targetBit;
+                        zobristDelta ^= Zobrist.Pieces[i, move.ToSquare];
+                        if (i < 6) WhiteOccupancy &= ~targetBit;
+                        else BlackOccupancy &= ~targetBit;
                         break;
                     }
                 }
+                PieceCount--;
                 HalfMoveClock = 0;
             }
             else if (move.PieceType == 0 || move.PieceType == 6)
@@ -160,14 +189,24 @@ namespace ChessEngine
             }
 
             Pieces[move.PieceType] &= ~(1UL << move.FromSquare);
+            zobristDelta ^= Zobrist.Pieces[move.PieceType, move.FromSquare];
+            if (move.PieceType < 6) WhiteOccupancy &= ~(1UL << move.FromSquare);
+            else BlackOccupancy &= ~(1UL << move.FromSquare);
 
             if (move.IsPromotion)
             {
-                Pieces[move.PromotedPieceType + 6 * SideToMove] |= (1UL << move.ToSquare);
+                int promoType = move.PromotedPieceType + 6 * SideToMove;
+                Pieces[promoType] |= (1UL << move.ToSquare);
+                zobristDelta ^= Zobrist.Pieces[promoType, move.ToSquare];
+                if (promoType < 6) WhiteOccupancy |= (1UL << move.ToSquare);
+                else BlackOccupancy |= (1UL << move.ToSquare);
             }
             else
             {
                 Pieces[move.PieceType] |= (1UL << move.ToSquare);
+                zobristDelta ^= Zobrist.Pieces[move.PieceType, move.ToSquare];
+                if (move.PieceType < 6) WhiteOccupancy |= (1UL << move.ToSquare);
+                else BlackOccupancy |= (1UL << move.ToSquare);
             }
 
             if ((move.PieceType == 0 || move.PieceType == 6) && !move.IsPromotion)
@@ -186,51 +225,48 @@ namespace ChessEngine
 
                 if (move.ToSquare == 6) // White Kingside (g1)
                 {
-                    Pieces[rookType] &= ~(1UL << 7); // Remove rook from h1
-                    Pieces[rookType] |= (1UL << 5);  // Add rook to f1
+                    Pieces[rookType] &= ~(1UL << 7); Pieces[rookType] |= (1UL << 5);
+                    zobristDelta ^= Zobrist.Pieces[rookType, 7]; zobristDelta ^= Zobrist.Pieces[rookType, 5];
+                    if (SideToMove == 0) { WhiteOccupancy &= ~(1UL << 7); WhiteOccupancy |= (1UL << 5); }
+                    else { BlackOccupancy &= ~(1UL << 7); BlackOccupancy |= (1UL << 5); }
                 }
                 else if (move.ToSquare == 2) // White Queenside (c1)
                 {
-                    Pieces[rookType] &= ~(1UL << 0); // Remove rook from a1
-                    Pieces[rookType] |= (1UL << 3);  // Add rook to d1
+                    Pieces[rookType] &= ~(1UL << 0); Pieces[rookType] |= (1UL << 3);
+                    zobristDelta ^= Zobrist.Pieces[rookType, 0]; zobristDelta ^= Zobrist.Pieces[rookType, 3];
+                    if (SideToMove == 0) { WhiteOccupancy &= ~(1UL << 0); WhiteOccupancy |= (1UL << 3); }
+                    else { BlackOccupancy &= ~(1UL << 0); BlackOccupancy |= (1UL << 3); }
                 }
                 else if (move.ToSquare == 62) // Black Kingside (g8)
                 {
-                    Pieces[rookType] &= ~(1UL << 63); // Remove rook from h8
-                    Pieces[rookType] |= (1UL << 61);  // Add rook to f8
+                    Pieces[rookType] &= ~(1UL << 63); Pieces[rookType] |= (1UL << 61);
+                    zobristDelta ^= Zobrist.Pieces[rookType, 63]; zobristDelta ^= Zobrist.Pieces[rookType, 61];
+                    if (SideToMove == 0) { WhiteOccupancy &= ~(1UL << 63); WhiteOccupancy |= (1UL << 61); }
+                    else { BlackOccupancy &= ~(1UL << 63); BlackOccupancy |= (1UL << 61); }
                 }
                 else if (move.ToSquare == 58) // Black Queenside (c8)
                 {
-                    Pieces[rookType] &= ~(1UL << 56); // Remove rook from a8
-                    Pieces[rookType] |= (1UL << 59);  // Add rook to d8
+                    Pieces[rookType] &= ~(1UL << 56); Pieces[rookType] |= (1UL << 59);
+                    zobristDelta ^= Zobrist.Pieces[rookType, 56]; zobristDelta ^= Zobrist.Pieces[rookType, 59];
+                    if (SideToMove == 0) { WhiteOccupancy &= ~(1UL << 56); WhiteOccupancy |= (1UL << 59); }
+                    else { BlackOccupancy &= ~(1UL << 56); BlackOccupancy |= (1UL << 59); }
                 }
             }
 
-            
-
-            
-
-            int pieceCount = 0;
-            for (int i = 0; i < 12; i++)
-            {
-                pieceCount += BitOperations.PopCount(Pieces[i]);
-            }
-
-            if (pieceCount <= 23)
-            {
+            if (PieceCount <= 23)
                 GameType = 1;
-            }
 
-
-            if (pieceCount<=7)
-            {
+            if (PieceCount <= 7)
                 GameType = 2;
-            }
-            
+
             // 4. Update Turn
             SideToMove = SideToMove == 0 ? 1 : 0;
+            zobristDelta ^= Zobrist.SideToMove;
 
-            this.ZobristKey = GenerateKey();
+            if (oldEP != -1) zobristDelta ^= Zobrist.EnPassant[oldEP];
+            if (EnPassantSquare != -1) zobristDelta ^= Zobrist.EnPassant[EnPassantSquare];
+
+            ZobristKey = state.ZobristKey ^ zobristDelta;
         }
 
         public void UnmakeMove()
@@ -243,6 +279,9 @@ namespace ChessEngine
             EnPassantSquare = state.EnPassantSquare;
             HalfMoveClock = state.HalfMoveClock;
             GameType = state.GameType;
+            WhiteOccupancy = state.WhiteOccupancy;
+            BlackOccupancy = state.BlackOccupancy;
+            PieceCount = state.PieceCount;
 
             // 3. Reverse the moving piece
             if (move.IsPromotion)
@@ -304,15 +343,9 @@ namespace ChessEngine
         public bool IsSquareAttacked(int square, int attackerColor)
         {
             if (square < 0 || square > 63) return false;
-            ulong friendlyPieces = attackerColor == 0
-                ? (Pieces[0] | Pieces[1] | Pieces[2] | Pieces[3] | Pieces[4] | Pieces[5])
-                : (Pieces[6] | Pieces[7] | Pieces[8] | Pieces[9] | Pieces[10] | Pieces[11]);
-
-            ulong enemyPieces = attackerColor == 0
-                ? (Pieces[6] | Pieces[7] | Pieces[8] | Pieces[9] | Pieces[10] | Pieces[11])
-                : (Pieces[0] | Pieces[1] | Pieces[2] | Pieces[3] | Pieces[4] | Pieces[5]);
-
-            ulong occupied = friendlyPieces | enemyPieces;
+            ulong friendlyPieces = attackerColor == 0 ? WhiteOccupancy : BlackOccupancy;
+            ulong enemyPieces = attackerColor == 0 ? BlackOccupancy : WhiteOccupancy;
+            ulong occupied = WhiteOccupancy | BlackOccupancy;
             ulong squareBB = 1UL << square;
 
             ulong knights = Pieces[attackerColor == 0 ? 1 : 7];
@@ -468,8 +501,7 @@ namespace ChessEngine
 
             if (includeHangingPieces)
             {
-                ulong occupied = this.Pieces[0] | this.Pieces[1] | this.Pieces[2] | this.Pieces[3] | this.Pieces[4] | this.Pieces[5] |
-                                 this.Pieces[6] | this.Pieces[7] | this.Pieces[8] | this.Pieces[9] | this.Pieces[10] | this.Pieces[11];
+                ulong occupied = this.Occupied;
 
                 // 1. Evaluate hanging pieces for White (Indices 0-4: Pawn to Queen)
                 for (int i = 0; i < 5; i++)
@@ -538,10 +570,32 @@ namespace ChessEngine
             copy.HalfMoveClock = this.HalfMoveClock;
             copy.GameType = this.GameType;
             copy.ZobristKey = this.ZobristKey;
+            copy.WhiteOccupancy = this.WhiteOccupancy;
+            copy.BlackOccupancy = this.BlackOccupancy;
+            copy.PieceCount = this.PieceCount;
             copy._historyPly = this._historyPly;
             Array.Copy(this._stateHistory, copy._stateHistory, this._stateHistory.Length);
 
             return copy;
+        }
+
+        public int GetPieceTypeAtSquare(int square)
+        {
+            ulong mask = 1UL << square;
+            for (int i = 0; i < 12; i++)
+                if ((Pieces[i] & mask) != 0)
+                    return i;
+            return -1;
+        }
+
+        public void ComputeInitialOccupancy()
+        {
+            WhiteOccupancy = Pieces[0] | Pieces[1] | Pieces[2] | Pieces[3] | Pieces[4] | Pieces[5];
+            BlackOccupancy = Pieces[6] | Pieces[7] | Pieces[8] | Pieces[9] | Pieces[10] | Pieces[11];
+            PieceCount = BitOperations.PopCount(WhiteOccupancy) + BitOperations.PopCount(BlackOccupancy);
+            if (PieceCount <= 7) GameType = 2;
+            else if (PieceCount <= 23) GameType = 1;
+            else GameType = 0;
         }
     }
 }

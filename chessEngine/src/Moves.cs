@@ -7,7 +7,7 @@ namespace ChessEngine
 {
     public static class KnightMoveGenerator
     {
-        public static Dictionary<int, ulong> KnightPreCalcs = new Dictionary<int, ulong>();
+        public static ulong[] KnightPreCalcs = new ulong[64];
         public static void PreCalculateKnightMoves()
         {
             int[] dy = { -2, -2, -1, -1, 1, 1, 2, 2 };
@@ -28,7 +28,7 @@ namespace ChessEngine
                         if (targetY >= 0 && targetY < 8 && targetX >= 0 && targetX < 8)
                         {
                             int targetPos = targetY * 8 + targetX;
-                            res |= 1UL << targetPos; //flipuje tu poziciju bitboarda na keca
+                            res |= 1UL << targetPos;
                         }
                     }
 
@@ -41,48 +41,34 @@ namespace ChessEngine
         {
             int moveCount = 0;
 
-            // 1. Calculate Friendly and Enemy piece bitboards
-            ulong friendlyPieces = color == 0
-                ? (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5])
-                : (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11]);
+            ulong friendlyPieces = color == 0 ? b.WhiteOccupancy : b.BlackOccupancy;
+            ulong enemyPieces = color == 0 ? b.BlackOccupancy : b.WhiteOccupancy;
 
-            ulong enemyPieces = color == 0
-                ? (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11])
-                : (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5]);
-
-            // Knights can jump anywhere, as long as they don't land on a friendly piece
             ulong validSquares = ~friendlyPieces;
 
-            // PieceType: White Knight = 1, Black Knight = 7
             int pieceType = color == 0 ? 1 : 7;
 
-            // 2. Iterate ONLY over the squares that actually contain a knight
             ulong knightsIter = knights;
             while (knightsIter != 0)
             {
-                // Find the index (0-63) of the first knight in the bitboard
                 int fromSquare = BitOperations.TrailingZeroCount(knightsIter);
 
-                // 3. Look up the precalculated attacks and mask out friendly pieces
                 ulong attacks = KnightMoveGenerator.KnightPreCalcs[fromSquare] & validSquares;
 
-                // 4. Iterate over all valid destination squares for this specific knight
                 ulong attacksIter = attacks;
                 while (attacksIter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(attacksIter);
 
-                    // A move is a capture if the destination square intersects with the enemy piece bitboard
                     bool isCapture = (enemyPieces & (1UL << toSquare)) != 0;
 
-                    // Add the move to the span
-                    moves[moveCount++] = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    Move m = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    if (isCapture) m.CapturedPieceType = b.GetPieceTypeAtSquare(toSquare);
+                    moves[moveCount++] = m;
 
-                    // Clear the destination bit we just processed
                     attacksIter &= attacksIter - 1;
                 }
 
-                // Clear the knight bit we just processed so the loop moves to the next knight
                 knightsIter &= knightsIter - 1;
             }
 
@@ -96,20 +82,20 @@ namespace ChessEngine
         public const ulong NotFileA = 0xFEFEFEFEFEFEFEFEUL;
         public const ulong NotFileH = 0x7F7F7F7F7F7F7F7FUL;
 
-        private static int AddPawnMove(Span<Move> moves, int moveCount, int from, int to, int piece, bool isCapture)
+        private static int AddPawnMove(Span<Move> moves, int moveCount, int from, int to, int piece, bool isCapture, int capturedPieceType = -1)
         {
             bool isPromotion = to >= 56 || to <= 7;
 
             if (isPromotion)
             {
-                moves[moveCount++] = new Move(from, to, piece, isCapture) { IsPromotion = true, PromotedPieceType = 4 };
-                moves[moveCount++] = new Move(from, to, piece, isCapture) { IsPromotion = true, PromotedPieceType = 3 };
-                moves[moveCount++] = new Move(from, to, piece, isCapture) { IsPromotion = true, PromotedPieceType = 2 };
-                moves[moveCount++] = new Move(from, to, piece, isCapture) { IsPromotion = true, PromotedPieceType = 1 };
+                moves[moveCount++] = new Move(from, to, piece, isCapture) { IsPromotion = true, PromotedPieceType = 4, CapturedPieceType = capturedPieceType };
+                moves[moveCount++] = new Move(from, to, piece, isCapture) { IsPromotion = true, PromotedPieceType = 3, CapturedPieceType = capturedPieceType };
+                moves[moveCount++] = new Move(from, to, piece, isCapture) { IsPromotion = true, PromotedPieceType = 2, CapturedPieceType = capturedPieceType };
+                moves[moveCount++] = new Move(from, to, piece, isCapture) { IsPromotion = true, PromotedPieceType = 1, CapturedPieceType = capturedPieceType };
             }
             else
             {
-                moves[moveCount++] = new Move(from, to, piece, isCapture);
+                moves[moveCount++] = new Move(from, to, piece, isCapture) { CapturedPieceType = capturedPieceType };
             }
             return moveCount;
         }
@@ -119,9 +105,8 @@ namespace ChessEngine
         {
             int moveCount = 0;
 
-            // 1. Calculate Occupied and Empty square bitboards
-            ulong whitePieces = b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5];
-            ulong blackPieces = b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11];
+            ulong whitePieces = b.WhiteOccupancy;
+            ulong blackPieces = b.BlackOccupancy;
             ulong empty = ~(whitePieces | blackPieces);
 
             if (color == 0) // White (PieceType 0)
@@ -153,7 +138,8 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, moveCount, toSquare - 7, toSquare, 0, true);
+                    int capType = b.GetPieceTypeAtSquare(toSquare);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare - 7, toSquare, 0, true, capType);
                     iter &= iter - 1;
                 }
 
@@ -163,7 +149,8 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, moveCount, toSquare - 9, toSquare, 0, true);
+                    int capType = b.GetPieceTypeAtSquare(toSquare);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare - 9, toSquare, 0, true, capType);
                     iter &= iter - 1;
                 }
 
@@ -174,9 +161,9 @@ namespace ChessEngine
                     int fromLeft = epSq - 7;
                     int fromRight = epSq - 9;
                     if (fromLeft >= 0 && (pawns & (1UL << fromLeft)) != 0)
-                        moves[moveCount++] = new Move(fromLeft, epSq, 0, true) { IsEnPassant = true };
+                        moves[moveCount++] = new Move(fromLeft, epSq, 0, true) { IsEnPassant = true, CapturedPieceType = 6 };
                     if (fromRight >= 0 && (pawns & (1UL << fromRight)) != 0)
-                        moves[moveCount++] = new Move(fromRight, epSq, 0, true) { IsEnPassant = true };
+                        moves[moveCount++] = new Move(fromRight, epSq, 0, true) { IsEnPassant = true, CapturedPieceType = 6 };
                 }
             }
             else // Black (PieceType 6)
@@ -208,7 +195,8 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, moveCount, toSquare + 9, toSquare, 6, true);
+                    int capType = b.GetPieceTypeAtSquare(toSquare);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare + 9, toSquare, 6, true, capType);
                     iter &= iter - 1;
                 }
 
@@ -218,7 +206,8 @@ namespace ChessEngine
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
-                    moveCount = AddPawnMove(moves, moveCount, toSquare + 7, toSquare, 6, true);
+                    int capType = b.GetPieceTypeAtSquare(toSquare);
+                    moveCount = AddPawnMove(moves, moveCount, toSquare + 7, toSquare, 6, true, capType);
                     iter &= iter - 1;
                 }
 
@@ -229,9 +218,9 @@ namespace ChessEngine
                     int fromRight = epSq + 7;
                     int fromLeft = epSq + 9;
                     if (fromRight < 64 && (pawns & (1UL << fromRight)) != 0)
-                        moves[moveCount++] = new Move(fromRight, epSq, 6, true) { IsEnPassant = true };
+                        moves[moveCount++] = new Move(fromRight, epSq, 6, true) { IsEnPassant = true, CapturedPieceType = 0 };
                     if (fromLeft < 64 && (pawns & (1UL << fromLeft)) != 0)
-                        moves[moveCount++] = new Move(fromLeft, epSq, 6, true) { IsEnPassant = true };
+                        moves[moveCount++] = new Move(fromLeft, epSq, 6, true) { IsEnPassant = true, CapturedPieceType = 0 };
                 }
             }
 
@@ -320,16 +309,9 @@ namespace ChessEngine
         {
             int moveCount = 0;
 
-            // 1. Calculate bitboards
-            ulong friendlyPieces = color == 0
-                ? (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5])
-                : (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11]);
-
-            ulong enemyPieces = color == 0
-                ? (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11])
-                : (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5]);
-
-            ulong occupied = friendlyPieces | enemyPieces;
+            ulong friendlyPieces = color == 0 ? b.WhiteOccupancy : b.BlackOccupancy;
+            ulong enemyPieces = color == 0 ? b.BlackOccupancy : b.WhiteOccupancy;
+            ulong occupied = b.WhiteOccupancy | b.BlackOccupancy;
             int pieceType = color == 0 ? 3 : 9; // 3 = White Rook, 9 = Black Rook
 
             ulong rooksIter = rooks;
@@ -352,7 +334,9 @@ namespace ChessEngine
                     int toSquare = BitOperations.TrailingZeroCount(attacksIter);
                     bool isCapture = (enemyPieces & (1UL << toSquare)) != 0;
 
-                    moves[moveCount++] = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    Move m = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    if (isCapture) m.CapturedPieceType = b.GetPieceTypeAtSquare(toSquare);
+                    moves[moveCount++] = m;
                     attacksIter &= attacksIter - 1;
                 }
 
@@ -575,15 +559,9 @@ namespace ChessEngine
         {
             int moveCount = 0;
 
-            ulong friendlyPieces = color == 0
-                ? (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5])
-                : (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11]);
-
-            ulong enemyPieces = color == 0
-                ? (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11])
-                : (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5]);
-
-            ulong occupied = friendlyPieces | enemyPieces;
+            ulong friendlyPieces = color == 0 ? b.WhiteOccupancy : b.BlackOccupancy;
+            ulong enemyPieces = color == 0 ? b.BlackOccupancy : b.WhiteOccupancy;
+            ulong occupied = b.WhiteOccupancy | b.BlackOccupancy;
             int pieceType = color == 0 ? 2 : 8; // 2 = White Bishop, 8 = Black Bishop
 
             ulong bishopsIter = bishops;
@@ -601,7 +579,9 @@ namespace ChessEngine
                     int toSquare = BitOperations.TrailingZeroCount(attacksIter);
                     bool isCapture = (enemyPieces & (1UL << toSquare)) != 0;
 
-                    moves[moveCount++] = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    Move m = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    if (isCapture) m.CapturedPieceType = b.GetPieceTypeAtSquare(toSquare);
+                    moves[moveCount++] = m;
                     attacksIter &= attacksIter - 1;
                 }
 
@@ -743,15 +723,9 @@ namespace ChessEngine
         {
             int moveCount = 0;
 
-            ulong friendlyPieces = color == 0
-                ? (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5])
-                : (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11]);
-
-            ulong enemyPieces = color == 0
-                ? (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11])
-                : (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5]);
-
-            ulong occupied = friendlyPieces | enemyPieces;
+            ulong friendlyPieces = color == 0 ? b.WhiteOccupancy : b.BlackOccupancy;
+            ulong enemyPieces = color == 0 ? b.BlackOccupancy : b.WhiteOccupancy;
+            ulong occupied = b.WhiteOccupancy | b.BlackOccupancy;
             int pieceType = color == 0 ? 4 : 10; // 4 = White Queen, 10 = Black Queen
 
             ulong queensIter = queens;
@@ -778,7 +752,9 @@ namespace ChessEngine
                     int toSquare = BitOperations.TrailingZeroCount(attacksIter);
                     bool isCapture = (enemyPieces & (1UL << toSquare)) != 0;
 
-                    moves[moveCount++] = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    Move m = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    if (isCapture) m.CapturedPieceType = b.GetPieceTypeAtSquare(toSquare);
+                    moves[moveCount++] = m;
                     attacksIter &= attacksIter - 1;
                 }
 
@@ -791,7 +767,7 @@ namespace ChessEngine
 
     public static class KingMoveGenerator
     {
-        public static Dictionary<int, ulong> KingPreCalcs = new Dictionary<int, ulong>();
+        public static ulong[] KingPreCalcs = new ulong[64];
         public static void PreCalculateKingMoves()
         {
             int[] dy = { -1, -1, -1, 0, 1, 1, 1, 0 };
@@ -812,7 +788,7 @@ namespace ChessEngine
                         if (targetY >= 0 && targetY < 8 && targetX >= 0 && targetX < 8)
                         {
                             int targetPos = targetY * 8 + targetX;
-                            res |= 1UL << targetPos; //flipuje tu poziciju bitboarda na keca
+                            res |= 1UL << targetPos;
                         }
                     }
 
@@ -825,15 +801,9 @@ namespace ChessEngine
         {
             int moveCount = 0;
 
-            ulong friendlyPieces = color == 0
-                ? (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5])
-                : (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11]);
-
-            ulong enemyPieces = color == 0
-                ? (b.Pieces[6] | b.Pieces[7] | b.Pieces[8] | b.Pieces[9] | b.Pieces[10] | b.Pieces[11])
-                : (b.Pieces[0] | b.Pieces[1] | b.Pieces[2] | b.Pieces[3] | b.Pieces[4] | b.Pieces[5]);
-
-            ulong occupied = friendlyPieces | enemyPieces;
+            ulong friendlyPieces = color == 0 ? b.WhiteOccupancy : b.BlackOccupancy;
+            ulong enemyPieces = color == 0 ? b.BlackOccupancy : b.WhiteOccupancy;
+            ulong occupied = b.WhiteOccupancy | b.BlackOccupancy;
             ulong validSquares = ~friendlyPieces;
 
             int pieceType = color == 0 ? 5 : 11;
@@ -852,7 +822,9 @@ namespace ChessEngine
                     int toSquare = BitOperations.TrailingZeroCount(attacksIter);
                     bool isCapture = (enemyPieces & (1UL << toSquare)) != 0;
 
-                    moves[moveCount++] = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    Move m = new Move(fromSquare, toSquare, pieceType, isCapture);
+                    if (isCapture) m.CapturedPieceType = b.GetPieceTypeAtSquare(toSquare);
+                    moves[moveCount++] = m;
                     attacksIter &= attacksIter - 1;
                 }
 
@@ -972,6 +944,32 @@ namespace ChessEngine
                 int kingSquare = BitOperations.TrailingZeroCount(b.Pieces[kingPieceType]);
                 bool isValid = !b.IsSquareAttacked(kingSquare, attackerCol);
 
+                b.UnmakeMove();
+
+                if (isValid)
+                {
+                    moves[ind++] = moves[i];
+                }
+            }
+
+            return ind;
+        }
+
+        public static int GenerateAllLegalCaptures(Board b, Span<Move> moves, int col)
+        {
+            int generatedMoves = GenerateAllPseudoLegalMoves(b, moves, col);
+            int ind = 0;
+
+            int kingPieceType = col == 0 ? 5 : 11;
+            int attackerCol = 1 - col;
+
+            for (int i = 0; i < generatedMoves; i++)
+            {
+                if (!moves[i].IsCapture) continue;
+
+                b.MakeMove(moves[i]);
+                int kingSquare = BitOperations.TrailingZeroCount(b.Pieces[kingPieceType]);
+                bool isValid = !b.IsSquareAttacked(kingSquare, attackerCol);
                 b.UnmakeMove();
 
                 if (isValid)

@@ -45,3 +45,15 @@ C:/Users/luka/Source/Repos/Chess2/chessEngine/obj/Debug/net8.0/ref/chessEngine.d
 /home/luka/src/repos/Chess2/chessEngine/obj/Debug/net8.0/refint/chessEngine.dll
 /home/luka/src/repos/Chess2/chessEngine/obj/Debug/net8.0/chessEngine.pdb
 /home/luka/src/repos/Chess2/chessEngine/obj/Debug/net8.0/ref/chessEngine.dll
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\bin\Debug\net8.0\chessEngine.deps.json
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\bin\Debug\net8.0\chessEngine.dll
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\bin\Debug\net8.0\chessEngine.pdb
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\obj\Debug\net8.0\chessEngine.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\obj\Debug\net8.0\chessEngine.AssemblyInfoInputs.cache
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\obj\Debug\net8.0\chessEngine.AssemblyInfo.cs
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\obj\Debug\net8.0\chessEngine.csproj.CoreCompileInputs.cache
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\obj\Debug\net8.0\chessEngine.sourcelink.json
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\obj\Debug\net8.0\chessEngine.dll
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\obj\Debug\net8.0\refint\chessEngine.dll
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\obj\Debug\net8.0\chessEngine.pdb
+C:\Users\lmarkovic24\source\repos\Chess2\chessEngine\obj\Debug\net8.0\ref\chessEngine.dll

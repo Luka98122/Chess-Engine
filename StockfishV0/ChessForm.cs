@@ -1,6 +1,7 @@
 ﻿using ChessEngine;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
@@ -313,7 +314,7 @@ namespace StockfishV0
                 fenStatusLabel.Text = "Loaded.";
             }
 
-            ShowGameScreen();
+            //ShowGameScreen();
         }
 
         private void PvpButton_Click(object sender, EventArgs e)
@@ -353,6 +354,7 @@ namespace StockfishV0
 
         private void MenuButton_Click(object sender, EventArgs e)
         {
+            chessBoard.ResetBoard();
             chessBoard.StopAiLoop();
             ShowMainMenuScreen();
         }
@@ -455,7 +457,6 @@ namespace StockfishV0
 
         private static bool engineHasBeenInitialized = false;
         private Board engineBoard = new Board();
-        private readonly Random random = new Random();
 
         private bool aiEnabled = false;
         private int humanColor = 0;
@@ -466,11 +467,11 @@ namespace StockfishV0
         private bool flipBoardEveryMove = false;
         private bool boardInputLocked = false;
         private int boardFlipDelayMs = 20;
-        private const int aiVsAiMoveDelayMs = 500;
+        private const int aiVsAiMoveDelayMs = 100;
 
         private readonly List<Move> selectedPieceLegalMoves = new List<Move>();
 
-        private ComboBox promotionDropdown = null;
+        private Panel promotionPanel = null;
         private bool promotionChoiceOpen = false;
         private Move pendingPromotionMove;
 
@@ -507,8 +508,6 @@ namespace StockfishV0
         private int gameOverState = -1;
         private string gameOverTitle = "";
         private string gameOverSubtitle = "";
-
-        private int boardPerspective_coords = 0; // 0 = white bottom, 1 = black bottom
 
         private struct BoardArrow
         {
@@ -552,7 +551,7 @@ namespace StockfishV0
 
             InitializeEngineBoard();
             LoadPieceImages();
-
+            InitializeEngineBoard();
             MouseDown += ChessBoardControl_MouseDown;
             MouseMove += ChessBoardControl_MouseMove;
             MouseUp += ChessBoardControl_MouseUp;
@@ -572,7 +571,7 @@ namespace StockfishV0
             aiMoveQueued = false;
             boardInputLocked = false;
 
-            ResetBoard();
+            //ResetBoard();
 
             UpdateBoardPerspectiveForTurn();
             QueueBotMoveIfNeeded();
@@ -629,6 +628,61 @@ namespace StockfishV0
             return true;
         }
 
+        private Button CreatePromotionButton(string pieceCode, int promotedPieceType, int rowIndex, int squareSize)
+        {
+            Button button = new Button();
+
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.BackColor = Color.White;
+            button.Cursor = Cursors.Hand;
+            button.Tag = promotedPieceType;
+
+            button.Width = squareSize - 2;
+            button.Height = squareSize;
+            button.Location = new Point(0, rowIndex * squareSize);
+
+            if (pieceImages.ContainsKey(pieceCode))
+            {
+                int imageSize = squareSize * 90 / 100;
+
+                button.Image = new Bitmap(pieceImages[pieceCode], imageSize, imageSize);
+                button.ImageAlign = ContentAlignment.MiddleCenter;
+            }
+            else
+            {
+                button.Text = pieceCode;
+                button.Font = new Font("Arial", 12, FontStyle.Bold);
+            }
+
+            button.Click += PromotionOptionButton_Click;
+
+            return button;
+        }
+
+        private Button CreatePromotionCancelButton(int rowIndex, int squareSize)
+        {
+            Button button = new Button();
+
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.BackColor = Color.FromArgb(240, 240, 240);
+            button.ForeColor = Color.FromArgb(120, 120, 120);
+            button.Cursor = Cursors.Hand;
+            button.Tag = -1;
+
+            button.Text = "✕";
+            button.Font = new Font("Arial", 16, FontStyle.Bold);
+
+            button.Width = squareSize - 2;
+            button.Height = squareSize;
+            button.Location = new Point(0, rowIndex * squareSize);
+
+            button.Click += PromotionOptionButton_Click;
+
+            return button;
+        }
+
 
         public void ResetBoard()
         {
@@ -660,7 +714,7 @@ namespace StockfishV0
             Invalidate();
         }
 
-        private void QueueBoardPerspectiveFlip()
+        private async void QueueBoardPerspectiveFlip()
         {
             if (!flipBoardEveryMove)
             {
@@ -669,20 +723,10 @@ namespace StockfishV0
 
             boardInputLocked = true;
 
-            System.Windows.Forms.Timer flipTimer = new System.Windows.Forms.Timer();
-            flipTimer.Interval = boardFlipDelayMs;
+            await Task.Delay(boardFlipDelayMs);
 
-            flipTimer.Tick += delegate
-            {
-                flipTimer.Stop();
-                flipTimer.Dispose();
-
-                UpdateBoardPerspectiveForTurn();
-
-                boardInputLocked = false;
-            };
-
-            flipTimer.Start();
+            UpdateBoardPerspectiveForTurn();
+            boardInputLocked = false;
         }
 
 
@@ -723,6 +767,26 @@ namespace StockfishV0
                 coloredSquares[i] = false;
             }
         }
+        private void ToggleArrow(int startSquare, int endSquare)
+        {
+            bool arrowAlreadyExists = false;
+
+            for (int i = arrows.Count - 1; i >= 0; i--)
+            {
+                if (arrows[i].StartSquare == startSquare &&
+                    arrows[i].EndSquare == endSquare)
+                {
+                    arrows.RemoveAt(i);
+                    arrowAlreadyExists = true;
+                }
+            }
+
+            if (!arrowAlreadyExists)
+            {
+                arrows.Add(new BoardArrow(startSquare, endSquare));
+            }
+        }
+
 
         private void ChessBoardControl_MouseDown(object sender, MouseEventArgs e)
         {
@@ -880,7 +944,7 @@ namespace StockfishV0
                         }
                         else
                         {
-                            arrows.Add(new BoardArrow(startSquare, targetSquare));
+                            ToggleArrow(startSquare, targetSquare);
                         }
                     }
                 }
@@ -1064,6 +1128,9 @@ namespace StockfishV0
                     }
 
                     MakeHumanMove(move);
+                    arrows.Clear();
+                    ClearColoredSquares();
+                    Invalidate();
                     return true;
                 }
             }
@@ -1096,30 +1163,68 @@ namespace StockfishV0
             promotionChoiceOpen = true;
             boardInputLocked = true;
 
-            promotionDropdown = new ComboBox();
-            promotionDropdown.DropDownStyle = ComboBoxStyle.DropDownList;
-            promotionDropdown.Font = new Font("Arial", 10, FontStyle.Bold);
-            promotionDropdown.Items.Add("Choose piece...");
-            promotionDropdown.Items.Add("Queen");
-            promotionDropdown.Items.Add("Rook");
-            promotionDropdown.Items.Add("Bishop");
-            promotionDropdown.Items.Add("Knight");
-            promotionDropdown.SelectedIndex = 0;
-            promotionDropdown.SelectedIndexChanged += PromotionDropdown_SelectedIndexChanged;
+            int engineX;
+            int engineY;
+            int engineHeight;
+            int boardX;
+            int boardY;
+            int squareSize;
 
-            Controls.Add(promotionDropdown);
+            if (!GetLayoutMetrics(out engineX, out engineY, out engineHeight, out boardX, out boardY, out squareSize))
+            {
+                promotionChoiceOpen = false;
+                boardInputLocked = false;
+                return;
+            }
+
+            promotionPanel = new Panel();
+            promotionPanel.BackColor = Color.White;
+            promotionPanel.BorderStyle = BorderStyle.FixedSingle;
+            promotionPanel.Width = squareSize;
+            promotionPanel.Height = squareSize * 5;
+
+            string queenCode;
+            string knightCode;
+            string rookCode;
+            string bishopCode;
+
+            if (engineBoard.SideToMove == 0)
+            {
+                queenCode = "wQ";
+                knightCode = "wN";
+                rookCode = "wR";
+                bishopCode = "wB";
+            }
+            else
+            {
+                queenCode = "bQ";
+                knightCode = "bN";
+                rookCode = "bR";
+                bishopCode = "bB";
+            }
+
+            Button queenButton = CreatePromotionButton(queenCode, 4, 0, squareSize);
+            Button knightButton = CreatePromotionButton(knightCode, 1, 1, squareSize);
+            Button rookButton = CreatePromotionButton(rookCode, 3, 2, squareSize);
+            Button bishopButton = CreatePromotionButton(bishopCode, 2, 3, squareSize);
+            Button cancelButton = CreatePromotionCancelButton(4, squareSize);
+
+            promotionPanel.Controls.Add(queenButton);
+            promotionPanel.Controls.Add(knightButton);
+            promotionPanel.Controls.Add(rookButton);
+            promotionPanel.Controls.Add(bishopButton);
+            promotionPanel.Controls.Add(cancelButton);
+
+            Controls.Add(promotionPanel);
             PositionPromotionDropdown();
 
-            promotionDropdown.BringToFront();
-            promotionDropdown.Focus();
-            promotionDropdown.DroppedDown = true;
-
+            promotionPanel.BringToFront();
             Invalidate();
         }
 
         private void PositionPromotionDropdown()
         {
-            if (promotionDropdown == null)
+            if (promotionPanel == null)
             {
                 return;
             }
@@ -1140,62 +1245,63 @@ namespace StockfishV0
             int col;
             EngineSquareToVisual(pendingPromotionMove.ToSquare, out row, out col);
 
-            int width = Math.Max(120, squareSize * 2);
-            int height = 28;
+            int boardSize = squareSize * 8;
+            int panelWidth = squareSize;
+            int panelHeight = squareSize * 5;
 
             int x = boardX + col * squareSize;
-            int y = boardY + row * squareSize;
+            int y;
 
-            if (x + width > ClientSize.Width)
+            // If target square is near the top, open downward.
+            // If target square is near the bottom, open upward.
+            if (row <= 3)
             {
-                x = ClientSize.Width - width - 4;
+                y = boardY + row * squareSize;
+            }
+            else
+            {
+                y = boardY + row * squareSize - (panelHeight - squareSize);
             }
 
-            if (y + height > ClientSize.Height)
+            if (x < boardX)
             {
-                y = ClientSize.Height - height - 4;
+                x = boardX;
             }
 
-            if (x < 4)
+            if (x + panelWidth > boardX + boardSize)
             {
-                x = 4;
+                x = boardX + boardSize - panelWidth;
             }
 
-            if (y < 4)
+            if (y < boardY)
             {
-                y = 4;
+                y = boardY;
             }
 
-            promotionDropdown.Width = width;
-            promotionDropdown.Height = height;
-            promotionDropdown.Location = new Point(x, y);
+            if (y + panelHeight > boardY + boardSize)
+            {
+                y = boardY + boardSize - panelHeight;
+            }
+
+            promotionPanel.Width = panelWidth;
+            promotionPanel.Height = panelHeight;
+            promotionPanel.Location = new Point(x, y);
         }
 
-        private void PromotionDropdown_SelectedIndexChanged(object sender, EventArgs e)
+        private void PromotionOptionButton_Click(object sender, EventArgs e)
         {
-            if (!promotionChoiceOpen || promotionDropdown == null)
+            if (!(sender is Button button))
             {
                 return;
             }
 
-            if (promotionDropdown.SelectedIndex <= 0)
+            int promotedPieceType = (int)button.Tag;
+
+            if (promotedPieceType == -1)
             {
+                HidePromotionDropdown();
+                Invalidate();
                 return;
-            }
-
-            int promotedPieceType = 4; // queen
-
-            if (promotionDropdown.SelectedItem.ToString() == "Rook")
-            {
-                promotedPieceType = 3;
-            }
-            else if (promotionDropdown.SelectedItem.ToString() == "Bishop")
-            {
-                promotedPieceType = 2;
-            }
-            else if (promotionDropdown.SelectedItem.ToString() == "Knight")
-            {
-                promotedPieceType = 1;
             }
 
             Move move = pendingPromotionMove;
@@ -1213,15 +1319,14 @@ namespace StockfishV0
             promotionChoiceOpen = false;
             boardInputLocked = false;
 
-            if (promotionDropdown == null)
+            if (promotionPanel == null)
             {
                 return;
             }
 
-            promotionDropdown.SelectedIndexChanged -= PromotionDropdown_SelectedIndexChanged;
-            Controls.Remove(promotionDropdown);
-            promotionDropdown.Dispose();
-            promotionDropdown = null;
+            Controls.Remove(promotionPanel);
+            promotionPanel.Dispose();
+            promotionPanel = null;
         }
         private bool IsHumanTurn()
         {
@@ -1322,21 +1427,23 @@ namespace StockfishV0
                     return;
                 }
 
-                int d = 5;
+                int d = 6;
                 if (engineBoard.GameType == 1)
                 {
-                    d = 5;
+                    d = 8;
                 }
                 else if (engineBoard.GameType == 2)
                 {
-                    d = 8;
+                    d = 11;
                 }
 
                 boardInputLocked = true;
 
                 Board aiSandboxBoard = engineBoard.Clone();
 
+                var sw = Stopwatch.StartNew();
                 Move botMove = await Task.Run(() => Bot.Think(aiSandboxBoard, d, 0));
+                Debug.WriteLine($"[PERF] Total Think(depth={d}) took {sw.Elapsed.TotalSeconds:F2}s");
 
                 if (!IsValidBotMove(botMove, engineBoard))
                 {
