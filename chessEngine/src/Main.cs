@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Numerics;
-using System.Reflection.PortableExecutable;
-using System.Runtime.ExceptionServices;
 using ChessEngine;
 using static ChessEngine.EngineHelpers;
 using static ChessEngine.KnightMoveGenerator;
@@ -17,7 +14,6 @@ namespace ChessEngine
         public int ToSquare;
         public int PieceType;
 
-        // Flags for special moves
         public bool IsCapture;
         public bool IsPromotion;
         public int PromotedPieceType;
@@ -32,7 +28,6 @@ namespace ChessEngine
             PieceType = piece;
             IsCapture = isCapture;
 
-            // Defaults
             IsPromotion = false;
             PromotedPieceType = -1;
             IsEnPassant = false;
@@ -43,8 +38,8 @@ namespace ChessEngine
 
     public struct BoardStateInfo
     {
-        public Move MoveMade; // Save the move so we can reverse it!
-        public int CapturedPieceType; // Store the exact piece we captured
+        public Move MoveMade;
+        public int CapturedPieceType;
         public byte CastlingRights;
         public int EnPassantSquare;
         public int HalfMoveClock;
@@ -61,7 +56,7 @@ namespace ChessEngine
         // Indices 6-11: Black (P, N, B, R, Q, K)
         public ulong[] Pieces = new ulong[12];
 
-        public int SideToMove = 0; // 0 for White, 1 for Black
+        public int SideToMove = 0; // 0 beli, 1 crni
         public byte CastlingRights = 15;
         public int EnPassantSquare = -1;
         public int HalfMoveClock = 0;
@@ -70,16 +65,16 @@ namespace ChessEngine
         public ulong WhiteOccupancy;
         public ulong BlackOccupancy;
         public ulong Occupied => WhiteOccupancy | BlackOccupancy;
-        // 15 represents binary 1111 (all castling rights intact)
+        // 15 bianrno je 1111 - obe strane imaju oba prava
         public static readonly byte[] CastlingRightsMask = new byte[64] {
-            13, 15, 15, 15, 12, 15, 15, 14, // Rank 1 (a1=13, e1=12, h1=14)
+            13, 15, 15, 15, 12, 15, 15, 14,
             15, 15, 15, 15, 15, 15, 15, 15,
             15, 15, 15, 15, 15, 15, 15, 15,
             15, 15, 15, 15, 15, 15, 15, 15,
             15, 15, 15, 15, 15, 15, 15, 15,
             15, 15, 15, 15, 15, 15, 15, 15,
             15, 15, 15, 15, 15, 15, 15, 15,
-            7, 15, 15, 15, 3, 15, 15, 11 // Rank 8 (a8=7, e8=3, h8=11)
+            7, 15, 15, 15, 3, 15, 15, 11 
         };
         private BoardStateInfo[] _stateHistory = new BoardStateInfo[2048];
         private int _historyPly = 0;
@@ -90,7 +85,6 @@ namespace ChessEngine
         {
             ulong key = 0;
 
-            // 1. XOR all pieces
             for (int p = 0; p < 12; p++)
             {
                 ulong bitboard = Pieces[p];
@@ -102,15 +96,11 @@ namespace ChessEngine
                 }
             }
 
-            // 2. XOR side to move
             if (SideToMove == 1) key ^= Zobrist.SideToMove;
 
-            // 3. XOR castling rights
             key ^= Zobrist.Castling[CastlingRights];
 
-            // 4. XOR en passant square
             if (EnPassantSquare != -1) key ^= Zobrist.EnPassant[EnPassantSquare];
-
             return key;
         }
 
@@ -219,32 +209,32 @@ namespace ChessEngine
                 }
             }
 
-            if (move.IsCastle)
+            if (move.IsCastle) //rokada
             {
                 int rookType = SideToMove == 0 ? 3 : 9;
 
-                if (move.ToSquare == 6) // White Kingside (g1)
+                if (move.ToSquare == 6) // beli kratka
                 {
                     Pieces[rookType] &= ~(1UL << 7); Pieces[rookType] |= (1UL << 5);
                     zobristDelta ^= Zobrist.Pieces[rookType, 7]; zobristDelta ^= Zobrist.Pieces[rookType, 5];
                     if (SideToMove == 0) { WhiteOccupancy &= ~(1UL << 7); WhiteOccupancy |= (1UL << 5); }
                     else { BlackOccupancy &= ~(1UL << 7); BlackOccupancy |= (1UL << 5); }
                 }
-                else if (move.ToSquare == 2) // White Queenside (c1)
+                else if (move.ToSquare == 2) // beli duga
                 {
                     Pieces[rookType] &= ~(1UL << 0); Pieces[rookType] |= (1UL << 3);
                     zobristDelta ^= Zobrist.Pieces[rookType, 0]; zobristDelta ^= Zobrist.Pieces[rookType, 3];
                     if (SideToMove == 0) { WhiteOccupancy &= ~(1UL << 0); WhiteOccupancy |= (1UL << 3); }
                     else { BlackOccupancy &= ~(1UL << 0); BlackOccupancy |= (1UL << 3); }
                 }
-                else if (move.ToSquare == 62) // Black Kingside (g8)
+                else if (move.ToSquare == 62) // crni kratka
                 {
                     Pieces[rookType] &= ~(1UL << 63); Pieces[rookType] |= (1UL << 61);
                     zobristDelta ^= Zobrist.Pieces[rookType, 63]; zobristDelta ^= Zobrist.Pieces[rookType, 61];
                     if (SideToMove == 0) { WhiteOccupancy &= ~(1UL << 63); WhiteOccupancy |= (1UL << 61); }
                     else { BlackOccupancy &= ~(1UL << 63); BlackOccupancy |= (1UL << 61); }
                 }
-                else if (move.ToSquare == 58) // Black Queenside (c8)
+                else if (move.ToSquare == 58) // crni duga
                 {
                     Pieces[rookType] &= ~(1UL << 56); Pieces[rookType] |= (1UL << 59);
                     zobristDelta ^= Zobrist.Pieces[rookType, 56]; zobristDelta ^= Zobrist.Pieces[rookType, 59];
@@ -253,13 +243,13 @@ namespace ChessEngine
                 }
             }
 
+            // Early,mid,end - game state
             if (PieceCount <= 23)
                 GameType = 1;
-
             if (PieceCount <= 7)
                 GameType = 2;
 
-            // 4. Update Turn
+            
             SideToMove = SideToMove == 0 ? 1 : 0;
             zobristDelta ^= Zobrist.SideToMove;
 
@@ -283,22 +273,17 @@ namespace ChessEngine
             BlackOccupancy = state.BlackOccupancy;
             PieceCount = state.PieceCount;
 
-            // 3. Reverse the moving piece
             if (move.IsPromotion)
             {
-                // Remove the newly promoted piece from the board
                 Pieces[move.PromotedPieceType + 6 * SideToMove] &= ~(1UL << move.ToSquare);
             }
             else
             {
-                // Remove the standard piece from its destination
                 Pieces[move.PieceType] &= ~(1UL << move.ToSquare);
             }
 
-            // Put the original piece back onto its starting square
             Pieces[move.PieceType] |= (1UL << move.FromSquare);
 
-            // 4. Restore the Captured Piece (if there was one)
             if (state.CapturedPieceType != -1)
             {
                 if (move.IsEnPassant)
@@ -312,32 +297,16 @@ namespace ChessEngine
                 }
             }
 
-            // 5. Reverse the Castling Rook
             if (move.IsCastle)
             {
                 int rookType = SideToMove == 0 ? 3 : 9;
 
-                // Reverse the bitflips we did in MakeMove
                 if (move.ToSquare == 6) { Pieces[rookType] &= ~(1UL << 5); Pieces[rookType] |= (1UL << 7); } // g1
                 else if (move.ToSquare == 2) { Pieces[rookType] &= ~(1UL << 3); Pieces[rookType] |= (1UL << 0); } // c1
                 else if (move.ToSquare == 62) { Pieces[rookType] &= ~(1UL << 61); Pieces[rookType] |= (1UL << 63); } // g8
                 else if (move.ToSquare == 58) { Pieces[rookType] &= ~(1UL << 59); Pieces[rookType] |= (1UL << 56); } // c8
             }
             this.ZobristKey = state.ZobristKey;
-        }
-
-        // Helper method to locate and clear a captured piece
-        private void ClearPieceAtTarget(int square, int opponentColor)
-        {
-            int startIndex = opponentColor == 0 ? 0 : 6;
-            int endIndex = startIndex + 5;
-
-            ulong squareMask = ~(1UL << square);
-
-            for (int i = startIndex; i <= endIndex; i++)
-            {
-                Pieces[i] &= squareMask;
-            }
         }
 
         public bool IsSquareAttacked(int square, int attackerColor)
@@ -355,12 +324,12 @@ namespace ChessEngine
             if ((KingMoveGenerator.KingPreCalcs[square] & kings) != 0) return true;
 
             ulong pawns = Pieces[attackerColor == 0 ? 0 : 6];
-            if (attackerColor == 0) // White is attacking
+            if (attackerColor == 0) //beli napada
             {
                 if ((((squareBB & PawnMoveGenerator.NotFileA) >> 9) & pawns) != 0) return true;
                 if ((((squareBB & PawnMoveGenerator.NotFileH) >> 7) & pawns) != 0) return true;
             }
-            else // Black is attacking
+            else //crni napada
             {
                 if ((((squareBB & PawnMoveGenerator.NotFileA) << 7) & pawns) != 0) return true;
                 if ((((squareBB & PawnMoveGenerator.NotFileH) << 9) & pawns) != 0) return true;
@@ -412,36 +381,30 @@ namespace ChessEngine
             int pOffset = attackerColor == 0 ? 0 : 6;
             ulong targetBit = 1UL << sq;
 
-            // 1. Pawns (100)
-            // Reverse pawn attacks: If a White pawn attacks `sq`, the pawn must be at sq-7 or sq-9.
+            // Ako beli pijun napada sq onda mora biti na sq-7 ili sq-, sl. za crne
             ulong pawns = Pieces[pOffset + 0];
             ulong pawnAttackers = attackerColor == 0
                 ? ((targetBit >> 7) & PawnMoveGenerator.NotFileA) | ((targetBit >> 9) & PawnMoveGenerator.NotFileH)
                 : ((targetBit << 7) & PawnMoveGenerator.NotFileH) | ((targetBit << 9) & PawnMoveGenerator.NotFileA);
             if ((pawns & pawnAttackers) != 0) return 100;
 
-            // 2. Knights (300)
             if ((KnightMoveGenerator.KnightPreCalcs[sq] & Pieces[pOffset + 1]) != 0) return 300;
 
-            // 3. Bishops (300)
             ulong bBlockers = occupied & BishopMoveGenerator.BishopMasks[sq];
             int bMagic = (int)((bBlockers * BishopMoveGenerator.BishopMagics[sq]) >> (64 - BishopMoveGenerator.BishopRelevantBits[sq]));
             ulong bAttacks = BishopMoveGenerator.BishopAttacks[sq][bMagic];
             if ((bAttacks & Pieces[pOffset + 2]) != 0) return 300;
 
-            // 4. Rooks (500)
             ulong rBlockers = occupied & RookMoveGenerator.RookMasks[sq];
             int rMagic = (int)((rBlockers * RookMoveGenerator.RookMagics[sq]) >> (64 - RookMoveGenerator.RookRelevantBits[sq]));
             ulong rAttacks = RookMoveGenerator.RookAttacks[sq][rMagic];
             if ((rAttacks & Pieces[pOffset + 3]) != 0) return 500;
 
-            // 5. Queens (900) - Queens share Rook and Bishop attack rays
             if (((bAttacks | rAttacks) & Pieces[pOffset + 4]) != 0) return 900;
 
-            // 6. Kings (6767)
             if ((KingMoveGenerator.KingPreCalcs[sq] & Pieces[pOffset + 5]) != 0) return 6767;
 
-            return 99999; // 99999 means the square is not attacked
+            return 99999; // Nije napadnut
         }
 
         public static readonly int[] vals = new int[] { 100, 300, 300, 500, 900, 6767, -100, -300, -300, -500, -900, -6767 }; 
@@ -454,21 +417,16 @@ namespace ChessEngine
                 ulong bitboard = this.Pieces[pt];
                 bool isBlack = pt > 5;
 
-                // Grab absolute material value from your Board.vals array
                 int materialValue = Math.Abs(vals[pt]);
 
                 while (bitboard != 0)
                 {
-                    // Isolate the index of the first '1' bit
                     int sq = System.Numerics.BitOperations.TrailingZeroCount(bitboard);
 
-                    // Get the positional bonus from our tables
                     int positionalBonus = PST.GetScore(pt, sq);
 
-                    // Combine material and positional value
                     int pieceScore = materialValue + positionalBonus;
 
-                    // Add for White, subtract for Black
                     if (isBlack)
                     {
                         score -= pieceScore;
@@ -478,12 +436,10 @@ namespace ChessEngine
                         score += pieceScore;
                     }
 
-                    // Clear the least significant set bit (fastest way to loop through pieces)
                     bitboard &= bitboard - 1;
                 }
             }
 
-            // Check eval:
 
             int wKingSquare = BitOperations.TrailingZeroCount(this.Pieces[5]);
             bool isWInCheck = this.IsSquareAttacked(wKingSquare, 1); //black attacking white king
@@ -503,7 +459,6 @@ namespace ChessEngine
             {
                 ulong occupied = this.Occupied;
 
-                // 1. Evaluate hanging pieces for White (Indices 0-4: Pawn to Queen)
                 for (int i = 0; i < 5; i++)
                 {
                     ulong piecesIter = this.Pieces[i];
@@ -511,15 +466,13 @@ namespace ChessEngine
                     {
                         int sq = BitOperations.TrailingZeroCount(piecesIter);
 
-                        int cheapestAttacker = GetCheapestAttackerValue(sq, 1, occupied); // 1 = Black
+                        int cheapestAttacker = GetCheapestAttackerValue(sq, 1, occupied);
 
-                        if (cheapestAttacker != 99999) // If it is attacked at all
+                        if (cheapestAttacker != 99999)
                         {
-                            bool isDefended = this.IsSquareAttacked(sq, 0); // 0 = White
-                            int pieceValue = vals[i]; // E.g., 900 for Queen
+                            bool isDefended = this.IsSquareAttacked(sq, 0);
+                            int pieceValue = vals[i];
 
-                            // It is a bad position if it's completely undefended, 
-                            // OR if the attacker is worth less than the victim (e.g., Pawn attacking defended Queen)
                             if (!isDefended || cheapestAttacker < pieceValue)
                             {
                                 score -= pieceValue / 2;
@@ -529,7 +482,6 @@ namespace ChessEngine
                     }
                 }
 
-                // 2. Evaluate hanging pieces for Black (Indices 6-10: Pawn to Queen)
                 for (int i = 6; i < 11; i++)
                 {
                     ulong piecesIter = this.Pieces[i];
@@ -537,16 +489,15 @@ namespace ChessEngine
                     {
                         int sq = BitOperations.TrailingZeroCount(piecesIter);
 
-                        int cheapestAttacker = GetCheapestAttackerValue(sq, 0, occupied); // 0 = White
+                        int cheapestAttacker = GetCheapestAttackerValue(sq, 0, occupied);
 
                         if (cheapestAttacker != 99999)
                         {
-                            bool isDefended = this.IsSquareAttacked(sq, 1); // 1 = Black
-                            int pieceValue = Math.Abs(vals[i]); // Black values are negative, so get the absolute value for comparison
-
+                            bool isDefended = this.IsSquareAttacked(sq, 1);
+                            int pieceValue = Math.Abs(vals[i]); 
                             if (!isDefended || cheapestAttacker < pieceValue)
                             {
-                                score -= vals[i] / 2; // Penalize Black (subtracting negative adds to White's score)
+                                score -= vals[i] / 2;
                             }
                         }
                         piecesIter &= piecesIter - 1;

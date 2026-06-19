@@ -91,7 +91,6 @@ namespace ChessEngine
         public static Dictionary<int, string> IndexToNotation = new Dictionary<int, string>(); // fun fekt: int.getHashCode() runnuje odmah i samo vrati taj int, ne hashuje ga.
         public static Dictionary<string, int> NotationToIndex = new Dictionary<string, int>();
 
-        // 2. The initialization function
         public static void InitializeNotationMaps()
         {
             for (int rank = 0; rank < 8; rank++)
@@ -101,22 +100,18 @@ namespace ChessEngine
                 {
                     int index = rank * 8 + file;
 
-                    // Character math: 'a' + 0 = 'a', 'a' + 1 = 'b', etc.
                     char fileChar = (char)('a' + file);
 
-                    // Character math: '1' + 0 = '1', '1' + 1 = '2', etc.
                     char rankChar = (char)('1' + rank);
 
                     string notation = $"{fileChar}{rankChar}";
 
-                    // Populate both dictionaries simultaneously
                     IndexToNotation[index] = notation;
                     NotationToIndex[notation] = index;
                 }
             }
         }
 
-        // Helper to set the standard 64-bit hexadecimal starting positions
         public static void InitializeStartingPosition(Board b)
         {
             // --- White Pieces ---
@@ -135,7 +130,7 @@ namespace ChessEngine
             b.Pieces[10] = 0x0800000000000000; // Queen (d8)
             b.Pieces[11] = 0x1000000000000000; // King (e8)
 
-            b.SideToMove = 0; // White's turn to move
+            b.SideToMove = 0;
             b.ComputeInitialOccupancy();
         }
 
@@ -290,7 +285,6 @@ namespace ChessEngine
                     return false;
                 }
 
-                // Board does not currently store fullmove number, so we only validate it.
             }
 
             RemoveImpossibleCastlingRights(b);
@@ -433,11 +427,10 @@ namespace ChessEngine
         {
 
             string displayTitle = $" {title} ";
-            int boardWidth = 19; // The exact width of "+-----------------+"
+            int boardWidth = 19;
 
             if (displayTitle.Length >= boardWidth)
             {
-                // If the title is too long, just print it aligned with the 2-space margin
                 Console.WriteLine($"  {displayTitle}");
             }
             else
@@ -473,7 +466,6 @@ namespace ChessEngine
             Console.WriteLine("  +-----------------+");
             Console.WriteLine("    a b c d e f g h");
 
-            // Print the raw value for easy copy-pasting
             Console.WriteLine($"Dec : {board}\n");
         }
     }

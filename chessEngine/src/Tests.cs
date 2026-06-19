@@ -118,7 +118,6 @@ namespace ChessEngine
         {
             Board b = new Board();
 
-            // 1. Clear standard array AND wipe all default castling rights
             for (int i = 0; i < 12; i++) b.Pieces[i] = 0UL;
             b.CastlingRights = 0;
 
@@ -132,8 +131,6 @@ namespace ChessEngine
                 if (p.pieceType == 11) hasBlackKing = true;
             }
 
-            // 2. Dynamically restore Castling Rights based on piece placement
-            // If a test places a King and Rook in their home positions, grant the right.
             if ((b.Pieces[5] & (1UL << 4)) != 0) // White King on e1
             {
                 if ((b.Pieces[3] & (1UL << 7)) != 0) b.CastlingRights |= 1; // Kingside
@@ -146,7 +143,6 @@ namespace ChessEngine
                 if ((b.Pieces[9] & (1UL << 56)) != 0) b.CastlingRights |= 8; // Queenside
             }
 
-            // 3. SAFETY: Dummy kings to prevent TrailingZeroCount from crashing IsSquareAttacked
             if (!hasWhiteKing) b.Pieces[5] |= (1UL << 0);   // a1
             if (!hasBlackKing) b.Pieces[11] |= (1UL << 63); // h8
 
@@ -158,16 +154,13 @@ namespace ChessEngine
             b.SideToMove = color;
             Span<Move> moves = stackalloc Move[500];
 
-            // Extract the bitboard of just the specific piece type we are testing
             ulong pieceBitboard = targetPieceType == -1 ? 0UL : b.Pieces[targetPieceType];
 
             int count = allMoves.GenerateAllLegalMoves(b, moves, color);
 
-            // Convert the Move span back into a raw bitboard for visualization
             ulong attackBitboard = 0UL;
             for (int i = 0; i < count; i++)
             {
-                // Only visualize moves originating from our specific test piece 
                 if (targetSquare == -1 || moves[i].FromSquare == targetSquare)
                 {
                     attackBitboard |= (1UL << moves[i].ToSquare);
@@ -176,7 +169,6 @@ namespace ChessEngine
 
             RenderSideBySide(title, b, attackBitboard, count);
 
-            // Render formatted moves under the board
             showMoves2(b, moves.Slice(0, count));
         }
 
@@ -191,7 +183,6 @@ namespace ChessEngine
 
             for (int rank = 7; rank >= 0; rank--)
             {
-                // 1. Build the Left Board string (Current State)
                 string left = $"{rank + 1} | ";
                 for (int file = 0; file < 8; file++)
                 {
@@ -210,14 +201,13 @@ namespace ChessEngine
                 }
                 left += "|";
 
-                // 2. Build the Right Board string (Attack bitboard mapping)
                 string right = $"{rank + 1} | ";
                 for (int file = 0; file < 8; file++)
                 {
                     int square = rank * 8 + file;
                     if ((attacks & (1UL << square)) != 0)
                     {
-                        right += "x "; // using 'x' for targeting to visually separate from '.'
+                        right += "x ";
                     }
                     else
                     {
@@ -225,8 +215,6 @@ namespace ChessEngine
                     }
                 }
                 right += "|";
-
-                // 3. Print them side-by-side with spacing
                 Console.WriteLine(left + "    " + right);
             }
 

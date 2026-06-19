@@ -13,8 +13,8 @@ namespace ChessEngine
 
         static Zobrist()
         {
-            // Using a fixed seed for reproducibility
-            Random rnd = new Random(1337);
+            // mora da bude fiksiran seed
+            Random rnd = new Random(6767);
             byte[] buffer = new byte[8];
 
             ulong NextRandom()
@@ -41,7 +41,7 @@ namespace ChessEngine
         public ulong Key;
         public int Depth;
         public int Score;
-        public int Flag; // 0 = Exact, 1 = Alpha (Upper bound), 2 = Beta (Lower bound)
+        public int Flag; // 0 = Exact,1 = Alpha (gornja granica), 2 = Beta (donja granica)
         public Move BestMove;
     }
 
@@ -90,10 +90,8 @@ namespace ChessEngine
     }
     public static class Bot
     {
-        // TODO: Fix 
         private const int Infinity = 2000000;
         public static Dictionary<(Board board, int depth, int a, int b, int c, int sideToMove), int> cache = new();
-        // Simple inline MVV-LVA calculation
         public static int ScoreMove(Move m)
         {
             int score = 0;
@@ -181,15 +179,13 @@ namespace ChessEngine
             int moveCount = allMoves.GenerateAllLegalMoves(b, moves, b.SideToMove);
             if (moveCount == 0) return default;
 
-            // --- MOVE ORDERING START ---
-            // Pre-score all moves to avoid O(N^2) function calls
             Span<int> moveScores = stackalloc int[moveCount];
             for (int i = 0; i < moveCount; i++)
             {
                 moveScores[i] = ScoreMove(moves[i]);
             }
 
-            // Selection sort based on pre-calculated scores
+            // Selection sort
             for (int i = 0; i < moveCount - 1; i++)
             {
                 int bestIndex = i;
@@ -208,17 +204,17 @@ namespace ChessEngine
                     moves[i] = moves[bestIndex];
                     moves[bestIndex] = tempMove;
 
-                    // Swap scores to keep the arrays synchronized
+                    // Swap scores
                     int tempScore = moveScores[i];
                     moveScores[i] = moveScores[bestIndex];
                     moveScores[bestIndex] = tempScore;
                 }
             }
-            // --- MOVE ORDERING END ---
+
 
             Move bestMoveThisTurn = moves[0];
 
-            // Iterative Deepening Loop
+            //iterative deepening
             var sw = Stopwatch.StartNew();
             for (int currentDepth = 1; currentDepth <= targetDepth; currentDepth++)
             {
@@ -281,7 +277,7 @@ namespace ChessEngine
                 b.ZobristKey ^= Zobrist.SideToMove;
                 if (savedEP != -1) b.ZobristKey ^= Zobrist.EnPassant[savedEP];
 
-                int nullScore = -Search(b, depth - 1 - 3, -beta, -beta + 1);
+                int nullScore = -Search(b, depth - 1 - 3, -beta, -beta + 1); //NMP
 
                 b.SideToMove = savedSTM;
                 b.EnPassantSquare = savedEP;
@@ -291,7 +287,7 @@ namespace ChessEngine
                     return beta;
             }
 
-            Span<Move> moves = stackalloc Move[256];
+            Span<Move> moves = stackalloc Move[256]; // bolje nego na heapu
             int moveCount = allMoves.GenerateAllLegalMoves(b, moves, b.SideToMove);
 
             if (moveCount == 0)

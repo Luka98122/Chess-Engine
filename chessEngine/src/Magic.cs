@@ -11,7 +11,6 @@ namespace ChessEngine
     {
         private static Random rnd = new Random();
 
-        // Generates a random 64-bit integer
         private static ulong GetRandomUlong()
         {
             byte[] buffer = new byte[8];
@@ -19,7 +18,8 @@ namespace ChessEngine
             return BitConverter.ToUInt64(buffer, 0);
         }
 
-        // Bitwise ANDing 3 random numbers dramatically reduces the number of 1s.
+        //Bitwise & tri random broja dosta smaji broj jedinica
+        // (Otp svaki osmi bit je jedinica)
         private static ulong GetSparseRandomUlong()
         {
             return GetRandomUlong() & GetRandomUlong() & GetRandomUlong();
@@ -31,10 +31,8 @@ namespace ChessEngine
             ulong[] blockers = new ulong[permutationCount];
             ulong[] attacks = new ulong[permutationCount];
 
-            // 1. Fetch the mask using the generator we already built
             ulong mask = RookMoveGenerator.CreateRookMask(square);
 
-            // 2. Pre-calculate all blocker states and their true attacks
             ulong blockerPattern = 0;
             int i = 0;
             do
@@ -45,12 +43,10 @@ namespace ChessEngine
                 blockerPattern = (blockerPattern - mask) & mask;
             } while (blockerPattern != 0);
 
-            // 3. Brute force loop
             for (int attempt = 0; attempt < 100000000; attempt++)
             {
                 ulong magic = GetSparseRandomUlong();
 
-                // Skip invalid magics early (a magic number must map to at least the required bits)
                 if (BitOperations.PopCount((mask * magic) & 0xFF00000000000000UL) < 6)
                     continue;
 
@@ -58,7 +54,6 @@ namespace ChessEngine
                 bool[] isUsed = new bool[permutationCount];
                 bool fail = false;
 
-                // 4. Test the magic number against every permutation
                 for (int j = 0; j < permutationCount; j++)
                 {
                     int magicIndex = (int)((blockers[j] * magic) >> (64 - relevantBits));
@@ -70,8 +65,6 @@ namespace ChessEngine
                     }
                     else if (usedAttacks[magicIndex] != attacks[j])
                     {
-                        // Collision! Two different blocker states resulted in the same index, 
-                        // but they require different attack boards. This magic fails.
                         fail = true;
                         break;
                     }
@@ -79,7 +72,7 @@ namespace ChessEngine
 
                 if (!fail)
                 {
-                    return magic; // We found a winner
+                    return magic; //radi
                 }
             }
 
@@ -87,13 +80,11 @@ namespace ChessEngine
             return 0UL;
         }
 
-        // Helper method to generate and print the full array of 64 magic numbers
         public static void GenerateAllRookMagics()
         {
             Console.WriteLine("public static readonly ulong[] RookMagics = new ulong[64] {");
             for (int square = 0; square < 64; square++)
             {
-                // We use PopCount on the mask to know exactly how many relevant bits this square has
                 ulong mask = RookMoveGenerator.CreateRookMask(square);
                 int relevantBits = BitOperations.PopCount(mask);
 
@@ -109,10 +100,8 @@ namespace ChessEngine
             ulong[] blockers = new ulong[permutationCount];
             ulong[] attacks = new ulong[permutationCount];
 
-            // 1. Fetch the exact mask your engine uses
             ulong mask = BishopMoveGenerator.CreateBishopMask(square);
 
-            // 2. Pre-calculate all blocker states and their true attacks
             ulong blockerPattern = 0;
             int i = 0;
             do
@@ -123,12 +112,10 @@ namespace ChessEngine
                 blockerPattern = (blockerPattern - mask) & mask;
             } while (blockerPattern != 0);
 
-            // 3. Brute force loop
             for (int attempt = 0; attempt < 100000000; attempt++)
             {
                 ulong magic = GetSparseRandomUlong();
 
-                // Skip invalid magics early 
                 if (BitOperations.PopCount((mask * magic) & 0xFF00000000000000UL) < 6)
                     continue;
 
@@ -136,7 +123,6 @@ namespace ChessEngine
                 bool[] isUsed = new bool[permutationCount];
                 bool fail = false;
 
-                // 4. Test the magic number against every permutation
                 for (int j = 0; j < permutationCount; j++)
                 {
                     int magicIndex = (int)((blockers[j] * magic) >> (64 - relevantBits));
@@ -148,7 +134,7 @@ namespace ChessEngine
                     }
                     else if (usedAttacks[magicIndex] != attacks[j])
                     {
-                        // Destructive Collision! 
+                         
                         fail = true;
                         break;
                     }
@@ -156,7 +142,7 @@ namespace ChessEngine
 
                 if (!fail)
                 {
-                    return magic; // Found a winner
+                    return magic; //Jupi
                 }
             }
 

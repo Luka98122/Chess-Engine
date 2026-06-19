@@ -1,0 +1,8 @@
+puzzle_url,fen,solution_pgn,themes
+https://www.lichess.org/training/KOrr6,5r1k/q5pp/4P3/4Q3/1p6/r7/P4PPP/R2R2K1 w - - 3 28,28. Rd7 Qxf2+ 29. Kh1 Qf1+ 30. Rxf1 Rxf1# *,backRankMate endgame long mate mateIn3 sacrifice
+https://www.lichess.org/training/91FeI,3r2k1/pp3ppp/2r5/8/4b3/P3P1Q1/1q3PPP/3RR1K1 b - - 1 22,22... Rxd1 23. Qb8+ Rc8 24. Qxc8+ Rd8 25. Qxd8# *,backRankMate endgame long mate mateIn3
+https://www.lichess.org/training/lTG9I,4r3/5pkp/1p3bp1/pNr5/8/5B2/R4PPP/4R1K1 w - - 0 27,27. Rxe8 Rc1+ 28. Bd1 Rxd1+ 29. Re1 Rxe1# *,backRankMate endgame long mate mateIn3
+https://www.lichess.org/training/bBZQS,3r2k1/5ppp/4p3/2q5/1pP5/p4QP1/P5KP/5R2 b - - 1 29,29... Qxc4 30. Qxf7+ Kh8 31. Qf8+ Rxf8 32. Rxf8# *,backRankMate endgame long mate mateIn3 sacrifice
+https://www.lichess.org/training/KTzYD,2r2k2/3n1pb1/3p2p1/1R1Np2p/4P3/r1P3PP/5P1N/1R4K1 b - - 1 38,38... Rc5 39. Rb8+ Nxb8 40. Rxb8+ Rc8 41. Rxc8# *,long mate mateIn3 middlegame sacrifice
+https://www.lichess.org/training/9tWq0,r4k1r/pp3p1p/2pb1qpQ/8/4R3/1P3P2/1PP2P1P/1K2R3 b - - 1 22,22... Kg8 23. Re8+ Rxe8 24. Rxe8+ Bf8 25. Qxf8# *,kingsideAttack long mate mateIn3 middlegame
+https://www.lichess.org/training/QTxO9,5Q2/7p/p5p1/1p4pk/6P1/3P4/PPq1r2P/5RK1 b - - 0 34,34... Kxg4 35. Qf3+ Kh4 36. Qg3+ Kh5 37. Qh3# *,endgame long mate mateIn3

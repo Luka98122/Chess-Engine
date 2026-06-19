@@ -1,7 +1,6 @@
 ﻿using ChessEngine;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
@@ -18,9 +17,27 @@ namespace StockfishV0
         private Panel settingsPanel;
 
         private ChessBoardControl chessBoard;
+        private ChessBoardControl settingsBoard;
         private Label gameModeLabel;
         private TextBox fenTextBox;
         private Label fenStatusLabel;
+        private Button solvePuzzlesButton;
+        private Label puzzleProgressLabel;
+
+        private Panel whitePiecePanel;
+        private Panel blackPiecePanel;
+        private int selectedPalettePieceType = -1;
+
+        private Panel puzzlePanel;
+        private ChessBoardControl puzzleBoard;
+        private Label puzzleTitleLabel;
+        private Label puzzleProgressLabel2;
+        private FlowLayoutPanel puzzleResultsPanel2;
+        private bool isDoingPuzzles = false;
+
+        private System.Windows.Forms.Timer fenDebounceTimer;
+        private bool fenLoadingFromBoard = false;
+        private bool settingsAiVsAiRunning = false;
 
         private enum GameMode
         {
@@ -66,12 +83,16 @@ namespace StockfishV0
             Button playButton = CreateMenuButton("PLAY");
             playButton.Click += PlayButton_Click;
 
-            Button settingsButton = CreateMenuButton("SETTINGS");
+            Button puzzlesButton = CreateMenuButton("DO PUZZLES");
+            puzzlesButton.Click += DoPuzzlesButton_Click;
+
+            Button settingsButton = CreateMenuButton("CUSTOM");
             settingsButton.Click += SettingsButton_Click;
 
             layout.Controls.Add(title, 0, 1);
             layout.Controls.Add(playButton, 0, 2);
-            layout.Controls.Add(settingsButton, 0, 3);
+            layout.Controls.Add(puzzlesButton, 0, 3);
+            layout.Controls.Add(settingsButton, 0, 4);
 
             mainMenuPanel.Controls.Add(layout);
         }
@@ -179,45 +200,215 @@ namespace StockfishV0
             settingsPanel.Dock = DockStyle.Fill;
             settingsPanel.BackColor = Color.FromArgb(32, 32, 32);
 
-            TableLayoutPanel layout = CreateMenuLayout();
+            Panel topBar = new Panel();
+            topBar.Height = 60;
+            topBar.Dock = DockStyle.Top;
+            topBar.BackColor = Color.FromArgb(42, 42, 42);
+            topBar.Padding = new Padding(8, 10, 8, 10);
 
-            Label title = CreateTitleLabel("Settings", 36);
+            TableLayoutPanel topLayout = new TableLayoutPanel();
+            topLayout.Dock = DockStyle.Fill;
+            topLayout.ColumnCount = 4;
+            topLayout.RowCount = 1;
+            topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
+            topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
+            topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
 
-            Label fenLabel = new Label();
-            fenLabel.Text = "Paste FEN position:";
-            fenLabel.ForeColor = Color.FromArgb(210, 210, 210);
-            fenLabel.Font = new Font("Arial", 14, FontStyle.Bold);
-            fenLabel.TextAlign = ContentAlignment.MiddleCenter;
-            fenLabel.Dock = DockStyle.Fill;
+            Button backButton = new Button();
+            backButton.Text = "Back";
+            backButton.Width = 60;
+            backButton.Height = 36;
+            backButton.Font = new Font("Arial", 10, FontStyle.Bold);
+            backButton.ForeColor = Color.White;
+            backButton.BackColor = Color.FromArgb(95, 65, 55);
+            backButton.FlatStyle = FlatStyle.Flat;
+            backButton.FlatAppearance.BorderSize = 0;
+            backButton.Cursor = Cursors.Hand;
+            backButton.Click += BackButtonToMain_Click;
+            backButton.Anchor = AnchorStyles.Left;
+            topLayout.Controls.Add(backButton, 0, 0);
 
             fenTextBox = new TextBox();
-            fenTextBox.Width = 760;
-            fenTextBox.Height = 34;
-            fenTextBox.Anchor = AnchorStyles.None;
-            fenTextBox.Font = new Font("Consolas", 12, FontStyle.Regular);
+            fenTextBox.Height = 36;
+            fenTextBox.Font = new Font("Consolas", 10, FontStyle.Regular);
             fenTextBox.Text = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+            fenTextBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            fenTextBox.Dock = DockStyle.Fill;
+            fenTextBox.TextChanged += FenTextBox_TextChanged;
+            fenTextBox.KeyDown += FenTextBox_KeyDown;
+            topLayout.Controls.Add(fenTextBox, 1, 0);
 
-            Button loadFenButton = CreateMenuButton("LOAD FEN");
+            Button loadFenButton = new Button();
+            loadFenButton.Text = "Load";
+            loadFenButton.Width = 60;
+            loadFenButton.Height = 36;
+            loadFenButton.Font = new Font("Arial", 10, FontStyle.Bold);
+            loadFenButton.ForeColor = Color.White;
+            loadFenButton.BackColor = Color.FromArgb(75, 105, 55);
+            loadFenButton.FlatStyle = FlatStyle.Flat;
+            loadFenButton.FlatAppearance.BorderSize = 0;
+            loadFenButton.Cursor = Cursors.Hand;
             loadFenButton.Click += LoadFenButton_Click;
+            loadFenButton.Anchor = AnchorStyles.Right;
+            topLayout.Controls.Add(loadFenButton, 2, 0);
 
             fenStatusLabel = new Label();
             fenStatusLabel.Text = "";
+            fenStatusLabel.AutoSize = true;
             fenStatusLabel.ForeColor = Color.FromArgb(210, 210, 210);
-            fenStatusLabel.Font = new Font("Arial", 11, FontStyle.Bold);
-            fenStatusLabel.TextAlign = ContentAlignment.MiddleCenter;
-            fenStatusLabel.Dock = DockStyle.Fill;
+            fenStatusLabel.Font = new Font("Arial", 9, FontStyle.Bold);
+            fenStatusLabel.Anchor = AnchorStyles.Left;
+            fenStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
+            fenStatusLabel.Padding = new Padding(8, 0, 0, 0);
+            topLayout.Controls.Add(fenStatusLabel, 3, 0);
 
-            Button backButton = CreateMenuButton("BACK");
-            backButton.Click += BackButtonToMain_Click;
+            topBar.Controls.Add(topLayout);
 
-            layout.Controls.Add(title, 0, 1);
-            layout.Controls.Add(fenLabel, 0, 2);
-            layout.Controls.Add(fenTextBox, 0, 3);
-            layout.Controls.Add(loadFenButton, 0, 4);
-            layout.Controls.Add(fenStatusLabel, 0, 5);
-            layout.Controls.Add(backButton, 0, 6);
+            fenDebounceTimer = new System.Windows.Forms.Timer();
+            fenDebounceTimer.Interval = 500;
+            fenDebounceTimer.Tick += FenDebounceTimer_Tick;
 
-            settingsPanel.Controls.Add(layout);
+            Panel middleArea = new Panel();
+            middleArea.Dock = DockStyle.Fill;
+            middleArea.BackColor = Color.FromArgb(32, 32, 32);
+
+            BuildPiecePalettes();
+
+            TableLayoutPanel boardLayout = new TableLayoutPanel();
+            boardLayout.Dock = DockStyle.Fill;
+            boardLayout.ColumnCount = 3;
+            boardLayout.RowCount = 1;
+            boardLayout.BackColor = Color.FromArgb(32, 32, 32);
+            boardLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 64));
+            boardLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            boardLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 64));
+
+            settingsBoard = new ChessBoardControl();
+            settingsBoard.EditorMode = true;
+            settingsBoard.BackColor = Color.FromArgb(32, 32, 32);
+            settingsBoard.OnBoardChanged += SettingsBoard_OnBoardChanged;
+            settingsBoard.Dock = DockStyle.Fill;
+
+            boardLayout.Controls.Add(whitePiecePanel, 0, 0);
+            boardLayout.Controls.Add(settingsBoard, 1, 0);
+            boardLayout.Controls.Add(blackPiecePanel, 2, 0);
+
+            middleArea.Controls.Add(boardLayout);
+
+            Panel bottomBar = new Panel();
+            bottomBar.Height = 50;
+            bottomBar.Dock = DockStyle.Bottom;
+            bottomBar.BackColor = Color.FromArgb(42, 42, 42);
+
+            solvePuzzlesButton = new Button();
+            solvePuzzlesButton.Text = "Start AI vs AI";
+            solvePuzzlesButton.Width = 160;
+            solvePuzzlesButton.Height = 34;
+            solvePuzzlesButton.Location = new Point(12, 8);
+            solvePuzzlesButton.Font = new Font("Arial", 10, FontStyle.Bold);
+            solvePuzzlesButton.ForeColor = Color.White;
+            solvePuzzlesButton.BackColor = Color.FromArgb(75, 105, 55);
+            solvePuzzlesButton.FlatStyle = FlatStyle.Flat;
+            solvePuzzlesButton.FlatAppearance.BorderSize = 0;
+            solvePuzzlesButton.Cursor = Cursors.Hand;
+            solvePuzzlesButton.Click += AiVsAiButton_Click;
+
+            puzzleProgressLabel = new Label();
+            puzzleProgressLabel.Text = "";
+            puzzleProgressLabel.AutoSize = true;
+            puzzleProgressLabel.Location = new Point(182, 14);
+            puzzleProgressLabel.ForeColor = Color.FromArgb(210, 210, 210);
+            puzzleProgressLabel.Font = new Font("Arial", 10, FontStyle.Bold);
+
+            bottomBar.Controls.Add(solvePuzzlesButton);
+            bottomBar.Controls.Add(puzzleProgressLabel);
+
+            settingsPanel.Controls.Add(topBar);
+            settingsPanel.Controls.Add(bottomBar);
+            settingsPanel.Controls.Add(middleArea);
+        }
+
+        private void BuildPiecePalettes()
+        {
+            whitePiecePanel = new Panel();
+            whitePiecePanel.Width = 64;
+            whitePiecePanel.Dock = DockStyle.Fill;
+            whitePiecePanel.BackColor = Color.FromArgb(32, 32, 32);
+            whitePiecePanel.Padding = new Padding(4, 4, 4, 4);
+
+            blackPiecePanel = new Panel();
+            blackPiecePanel.Width = 64;
+            blackPiecePanel.Dock = DockStyle.Fill;
+            blackPiecePanel.BackColor = Color.FromArgb(32, 32, 32);
+            blackPiecePanel.Padding = new Padding(4, 4, 4, 4);
+
+            string[] whiteCodes = { "wP", "wN", "wB", "wR", "wQ", "wK" };
+            int[] whiteTypes = { 0, 1, 2, 3, 4, 5 };
+            string[] blackCodes = { "bP", "bN", "bB", "bR", "bQ", "bK" };
+            int[] blackTypes = { 6, 7, 8, 9, 10, 11 };
+
+            for (int i = 0; i < 6; i++)
+            {
+                Button whiteBtn = CreatePaletteButton(whiteCodes[i], whiteTypes[i], 0);
+                whiteBtn.Dock = DockStyle.Top;
+                whitePiecePanel.Controls.Add(whiteBtn);
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                Button blackBtn = CreatePaletteButton(blackCodes[i], blackTypes[i], 6);
+                blackBtn.Dock = DockStyle.Top;
+                blackPiecePanel.Controls.Add(blackBtn);
+            }
+        }
+
+        private Button CreatePaletteButton(string pieceCode, int pieceType, int startIndex)
+        {
+            Button btn = new Button();
+            btn.Width = 52;
+            btn.Height = 52;
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderSize = 2;
+            btn.FlatAppearance.BorderColor = Color.FromArgb(60, 60, 60);
+            btn.BackColor = Color.FromArgb(50, 50, 50);
+            btn.Cursor = Cursors.Hand;
+            btn.Tag = pieceType;
+            btn.Text = "";
+            btn.Margin = new Padding(4, 2, 4, 2);
+
+            if (chessBoard != null)
+            {
+                Image img = chessBoard.GetPieceImage(pieceCode);
+                if (img != null)
+                {
+                    btn.Image = new Bitmap(img, 36, 36);
+                    btn.ImageAlign = ContentAlignment.MiddleCenter;
+                }
+                else
+                {
+                    btn.Text = pieceCode;
+                    btn.Font = new Font("Arial", 8, FontStyle.Bold);
+                    btn.ForeColor = Color.White;
+                }
+            }
+            else
+            {
+                btn.Text = pieceCode;
+                btn.Font = new Font("Arial", 8, FontStyle.Bold);
+                btn.ForeColor = Color.White;
+            }
+
+            btn.Click += PalettePiece_Click;
+            return btn;
+        }
+
+        private void FenTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                LoadFenButton_Click(sender, e);
+                e.SuppressKeyPress = true;
+            }
         }
 
         private TableLayoutPanel CreateMenuLayout()
@@ -285,27 +476,17 @@ namespace StockfishV0
 
         private void LoadFenButton_Click(object sender, EventArgs e)
         {
-            if (fenTextBox == null)
-            {
-                return;
-            }
+            if (fenTextBox == null || settingsBoard == null) return;
 
             string error;
-
-            if (!chessBoard.LoadFenPosition(fenTextBox.Text, out error))
+            if (!settingsBoard.LoadFenPosition(fenTextBox.Text, out error))
             {
                 if (fenStatusLabel != null)
                 {
                     fenStatusLabel.ForeColor = Color.FromArgb(235, 110, 95);
                     fenStatusLabel.Text = "FEN error: " + error;
                 }
-
                 return;
-            }
-
-            if (gameModeLabel != null)
-            {
-                gameModeLabel.Text = "CUSTOM FEN";
             }
 
             if (fenStatusLabel != null)
@@ -313,8 +494,627 @@ namespace StockfishV0
                 fenStatusLabel.ForeColor = Color.FromArgb(120, 220, 120);
                 fenStatusLabel.Text = "Loaded.";
             }
+        }
 
-            //ShowGameScreen();
+        private void SettingsBoard_OnBoardChanged()
+        {
+            if (fenTextBox != null && settingsBoard != null)
+            {
+                fenLoadingFromBoard = true;
+                fenTextBox.Text = settingsBoard.GetFen();
+                fenLoadingFromBoard = false;
+                fenStatusLabel.Text = "";
+            }
+        }
+
+        private void FenTextBox_TextChanged(object sender, EventArgs e)
+        {
+            if (fenLoadingFromBoard) return;
+            fenDebounceTimer?.Stop();
+            fenDebounceTimer?.Start();
+        }
+
+        private void FenDebounceTimer_Tick(object sender, EventArgs e)
+        {
+            fenDebounceTimer.Stop();
+            if (fenTextBox == null || settingsBoard == null) return;
+            string error;
+            if (!settingsBoard.LoadFenPosition(fenTextBox.Text, out error))
+            {
+                if (fenStatusLabel != null)
+                {
+                    fenStatusLabel.ForeColor = Color.FromArgb(235, 110, 95);
+                    fenStatusLabel.Text = "FEN error: " + error;
+                }
+            }
+            else
+            {
+                if (fenStatusLabel != null)
+                {
+                    fenStatusLabel.ForeColor = Color.FromArgb(120, 220, 120);
+                    fenStatusLabel.Text = "Loaded.";
+                }
+            }
+        }
+
+        private void PalettePiece_Click(object sender, EventArgs e)
+        {
+            if (settingsBoard == null) return;
+            Button btn = sender as Button;
+            if (btn == null) return;
+
+            int pieceType = (int)btn.Tag;
+
+            if (selectedPalettePieceType == pieceType)
+            {
+                selectedPalettePieceType = -1;
+                settingsBoard.PalettePieceType = -1;
+                UpdatePaletteButtonBorders();
+            }
+            else
+            {
+                selectedPalettePieceType = pieceType;
+                settingsBoard.PalettePieceType = pieceType;
+                UpdatePaletteButtonBorders();
+            }
+        }
+
+        private void UpdatePaletteButtonBorders()
+        {
+            foreach (Control c in whitePiecePanel.Controls)
+            {
+                if (c is Button btn && btn.Tag is int pt)
+                {
+                    btn.FlatAppearance.BorderColor = pt == selectedPalettePieceType
+                        ? Color.FromArgb(245, 178, 38) : Color.FromArgb(60, 60, 60);
+                }
+            }
+            foreach (Control c in blackPiecePanel.Controls)
+            {
+                if (c is Button btn && btn.Tag is int pt)
+                {
+                    btn.FlatAppearance.BorderColor = pt == selectedPalettePieceType
+                        ? Color.FromArgb(245, 178, 38) : Color.FromArgb(60, 60, 60);
+                }
+            }
+        }
+
+        public int GetSelectedPalettePieceType()
+        {
+            return selectedPalettePieceType;
+        }
+
+        private void DoPuzzlesButton_Click(object sender, EventArgs e)
+        {
+            BuildPuzzleScreenIfNeeded();
+            ShowPuzzleScreen();
+            BeginPuzzleSolver();
+        }
+
+        private void BuildPuzzleScreenIfNeeded()
+        {
+            if (puzzlePanel != null) return;
+
+            puzzlePanel = new Panel();
+            puzzlePanel.Dock = DockStyle.Fill;
+            puzzlePanel.BackColor = Color.FromArgb(32, 32, 32);
+
+            Panel puzzleTopBar = new Panel();
+            puzzleTopBar.Height = 50;
+            puzzleTopBar.Dock = DockStyle.Top;
+            puzzleTopBar.BackColor = Color.FromArgb(42, 42, 42);
+
+            Button puzzleBackButton = new Button();
+            puzzleBackButton.Text = "Back";
+            puzzleBackButton.Width = 60;
+            puzzleBackButton.Height = 34;
+            puzzleBackButton.Location = new Point(12, 8);
+            puzzleBackButton.Font = new Font("Arial", 10, FontStyle.Bold);
+            puzzleBackButton.ForeColor = Color.White;
+            puzzleBackButton.BackColor = Color.FromArgb(95, 65, 55);
+            puzzleBackButton.FlatStyle = FlatStyle.Flat;
+            puzzleBackButton.FlatAppearance.BorderSize = 0;
+            puzzleBackButton.Cursor = Cursors.Hand;
+            puzzleBackButton.Click += PuzzleBackButton_Click;
+            puzzleTopBar.Controls.Add(puzzleBackButton);
+
+            puzzleTitleLabel = new Label();
+            puzzleTitleLabel.Text = "Puzzles";
+            puzzleTitleLabel.AutoSize = true;
+            puzzleTitleLabel.Location = new Point(90, 12);
+            puzzleTitleLabel.ForeColor = Color.White;
+            puzzleTitleLabel.Font = new Font("Arial", 14, FontStyle.Bold);
+            puzzleTopBar.Controls.Add(puzzleTitleLabel);
+
+            puzzleProgressLabel2 = new Label();
+            puzzleProgressLabel2.Text = "";
+            puzzleProgressLabel2.AutoSize = true;
+            puzzleProgressLabel2.Location = new Point(250, 14);
+            puzzleProgressLabel2.ForeColor = Color.FromArgb(210, 210, 210);
+            puzzleProgressLabel2.Font = new Font("Arial", 10, FontStyle.Bold);
+            puzzleTopBar.Controls.Add(puzzleProgressLabel2);
+
+            puzzlePanel.Controls.Add(puzzleTopBar);
+
+            puzzleBoard = new ChessBoardControl();
+            puzzleBoard.Dock = DockStyle.Fill;
+            puzzleBoard.BackColor = Color.FromArgb(32, 32, 32);
+            puzzleBoard.Enabled = false;
+            puzzleBoard.ShowEngineBar = false;
+
+            Panel puzzleBottomBar = new Panel();
+            puzzleBottomBar.Height = 46;
+            puzzleBottomBar.Dock = DockStyle.Bottom;
+            puzzleBottomBar.BackColor = Color.FromArgb(42, 42, 42);
+
+            puzzleResultsPanel2 = new FlowLayoutPanel();
+            puzzleResultsPanel2.Location = new Point(12, 8);
+            puzzleResultsPanel2.Width = 900;
+            puzzleResultsPanel2.Height = 30;
+            puzzleResultsPanel2.BackColor = Color.Transparent;
+            puzzleResultsPanel2.FlowDirection = FlowDirection.LeftToRight;
+            puzzleResultsPanel2.WrapContents = false;
+            puzzleBottomBar.Controls.Add(puzzleResultsPanel2);
+
+            puzzlePanel.Controls.Add(puzzleBottomBar);
+            puzzlePanel.Controls.Add(puzzleBoard);
+
+            Controls.Add(puzzlePanel);
+        }
+
+        private void ShowPuzzleScreen()
+        {
+            mainMenuPanel.Visible = false;
+            playPanel.Visible = false;
+            colorSelectPanel.Visible = false;
+            gamePanel.Visible = false;
+            settingsPanel.Visible = false;
+            puzzlePanel.Visible = true;
+            puzzlePanel.BringToFront();
+        }
+
+        private void PuzzleBackButton_Click(object sender, EventArgs e)
+        {
+            isDoingPuzzles = false;
+            puzzleBoard?.StopAiLoop();
+            ShowMainMenuScreen();
+        }
+
+        private async void BeginPuzzleSolver()
+        {
+            if (isDoingPuzzles) return;
+            isDoingPuzzles = true;
+
+            string csvPath = FindPuzzlesCsv();
+            if (csvPath == null)
+            {
+                puzzleProgressLabel2.Text = "Puzzles.csv not found!";
+                isDoingPuzzles = false;
+                return;
+            }
+
+            puzzleResultsPanel2.Controls.Clear();
+            puzzleProgressLabel2.Text = "Loading puzzles...";
+
+            string[] lines;
+            try { lines = File.ReadAllLines(csvPath); }
+            catch { puzzleProgressLabel2.Text = "Failed to read puzzles."; isDoingPuzzles = false; return; }
+
+            if (lines.Length < 2) { puzzleProgressLabel2.Text = "No puzzles found."; isDoingPuzzles = false; return; }
+
+            int maxPuzzles = Math.Min(100, lines.Length - 1);
+
+            List<int> indices = new List<int>();
+            for (int idx = 1; idx < lines.Length; idx++)
+                indices.Add(idx);
+
+            Random rng = new Random();
+            for (int k = indices.Count - 1; k > 0; k--)
+            {
+                int j = rng.Next(k + 1);
+                int tmp = indices[k];
+                indices[k] = indices[j];
+                indices[j] = tmp;
+            }
+
+            string newCsvDir = Path.GetDirectoryName(csvPath);
+            string newCsvPath = Path.Combine(newCsvDir, "newPuzzles.csv");
+            List<string> successfulLines = new List<string>();
+            successfulLines.Add(lines[0]);
+
+            int solvedCount = 0;
+            int attemptedCount = 0;
+
+            for (int pi = 0; pi < maxPuzzles && isDoingPuzzles; pi++)
+            {
+                int i = indices[pi];
+                string line = lines[i];
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                string[] cols = line.Split(',');
+                if (cols.Length < 3) continue;
+
+                string fen = cols[1];
+                string solutionPgn = cols.Length > 2 ? cols[2] : "";
+
+                attemptedCount++;
+
+                Invoke((MethodInvoker)(() =>
+                {
+                    puzzleProgressLabel2.Text = $"Puzzle {attemptedCount}/{maxPuzzles} | {solvedCount} solved";
+                }));
+
+                bool solved = await SolvePuzzleOnBoard(fen, solutionPgn);
+
+                Invoke((MethodInvoker)(() =>
+                {
+                    Label resultLabel = new Label();
+                    resultLabel.Margin = new Padding(0, 2, 6, 0);
+                    resultLabel.Text = solved ? "✔" : "✘";
+                    resultLabel.ForeColor = solved ? Color.FromArgb(120, 220, 120) : Color.FromArgb(235, 110, 95);
+                    resultLabel.Font = new Font("Arial", 12, FontStyle.Bold);
+                    resultLabel.AutoSize = true;
+                    puzzleResultsPanel2.Controls.Add(resultLabel);
+                }));
+
+                if (solved)
+                {
+                    solvedCount++;
+                    successfulLines.Add(line);
+                }
+
+                await Task.Delay(500);
+            }
+
+            if (successfulLines.Count > 1)
+            {
+                File.WriteAllLines(newCsvPath, successfulLines);
+            }
+
+            puzzleProgressLabel2.Text = $"Done. {solvedCount}/{attemptedCount} written to newPuzzles.csv";
+            isDoingPuzzles = false;
+        }
+
+        private async Task<bool> SolvePuzzleOnBoard(string fen, string solutionPgn)
+        {
+            Board puzzleBoardLocal = new Board();
+            if (!EngineHelpers.TryLoadFen(puzzleBoardLocal, fen, out _))
+                return false;
+
+            Invoke((MethodInvoker)(() =>
+            {
+                puzzleBoard?.LoadFenPosition(fen, out _);
+                puzzleBoard!.BoardPerspective = 0;
+            }));
+
+            int puzzleSide = puzzleBoardLocal.SideToMove;
+
+            List<string> solutionMoves = null;
+            if (!string.IsNullOrWhiteSpace(solutionPgn))
+            {
+                solutionMoves = ParseSolutionPgn(solutionPgn);
+            }
+
+            int maxMoves = 20;
+            int moveCount = 0;
+
+            List<ulong> posHistory = new List<ulong>();
+            posHistory.Add(puzzleBoardLocal.ZobristKey);
+
+            while (moveCount < maxMoves && isDoingPuzzles)
+            {
+                int state = puzzleBoardLocal.GetBoardState();
+                if (state == 0 || state == 1) return true;
+                if (state == puzzleSide) return true;
+                if (state == 1 - puzzleSide || state == 2) return false;
+
+                if (CheckThreefoldRepetitionLocal(posHistory, puzzleBoardLocal.ZobristKey)) return false;
+
+                Move[] moveBuffer = new Move[500];
+                int legalCount = allMoves.GenerateAllLegalMoves(puzzleBoardLocal, moveBuffer.AsSpan(), puzzleBoardLocal.SideToMove);
+                if (legalCount == 0)
+                {
+                    int endState = puzzleBoardLocal.GetBoardState();
+                    return endState == puzzleSide;
+                }
+
+                Move nextMove;
+                if (solutionMoves != null && moveCount < solutionMoves.Count)
+                {
+                    nextMove = ConvertSanToMove(solutionMoves[moveCount], puzzleBoardLocal, moveBuffer, legalCount);
+                    if (nextMove.FromSquare == -1)
+                        return false;
+                }
+                else
+                {
+                    Board sandbox = puzzleBoardLocal.Clone();
+                    Move bestMove = await Task.Run(() => Bot.Think(sandbox, 8, 0));
+                    bool moveValid = false;
+                    nextMove = bestMove;
+                    for (int j = 0; j < legalCount; j++)
+                    {
+                        if (moveBuffer[j].FromSquare == bestMove.FromSquare &&
+                            moveBuffer[j].ToSquare == bestMove.ToSquare)
+                        {
+                            nextMove = moveBuffer[j];
+                            moveValid = true;
+                            break;
+                        }
+                    }
+                    if (!moveValid) return false;
+                }
+
+                puzzleBoardLocal.MakeMove(nextMove);
+                posHistory.Add(puzzleBoardLocal.ZobristKey);
+                moveCount++;
+
+                Invoke((MethodInvoker)(() =>
+                {
+                    if (puzzleBoard != null && puzzlePanel.Visible)
+                    {
+                        puzzleBoard.LoadFenPosition(GetBoardFen(puzzleBoardLocal), out _);
+                        puzzleBoard.BoardPerspective = 0;
+                    }
+                }));
+
+                await Task.Delay(1000);
+            }
+
+            return puzzleBoardLocal.GetBoardState() == puzzleSide;
+        }
+
+        private List<string> ParseSolutionPgn(string pgn)
+        {
+            List<string> moves = new List<string>();
+            string[] tokens = pgn.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string token in tokens)
+            {
+                if (token == "*") continue;
+                if (char.IsDigit(token[0]) && (token.EndsWith(".") || token.EndsWith("...")))
+                    continue;
+
+                if (char.IsDigit(token[0]))
+                {
+                    int dotIdx = token.IndexOf('.');
+                    if (dotIdx >= 0)
+                    {
+                        string after = token.Substring(dotIdx + 1);
+                        if (!string.IsNullOrEmpty(after))
+                            moves.Add(after);
+                    }
+                    continue;
+                }
+
+                moves.Add(token);
+            }
+
+            return moves;
+        }
+
+        private Move ConvertSanToMove(string san, Board board, Move[] legalMoves, int legalCount)
+        {
+            string token = san;
+
+            if (token.EndsWith("+") || token.EndsWith("#"))
+                token = token.TrimEnd('+', '#');
+
+            int promotedPieceType = -1;
+            int eqIdx = token.IndexOf('=');
+            if (eqIdx >= 0)
+            {
+                char promoChar = token[eqIdx + 1];
+                promotedPieceType = SanCharToPromoType(promoChar);
+                token = token.Substring(0, eqIdx);
+            }
+
+            bool isCapture = token.Contains("x");
+
+            int pieceType;
+            string destStr;
+            string disambiguation = "";
+
+            if (char.IsUpper(token[0]) && token[0] != 'O')
+            {
+                char pieceChar = token[0];
+                token = token.Substring(1);
+                token = token.Replace("x", "");
+
+                if (token.Length > 2)
+                {
+                    disambiguation = token.Substring(0, token.Length - 2);
+                }
+                destStr = token.Substring(token.Length - 2);
+                pieceType = SanPieceCharToType(pieceChar, board.SideToMove);
+            }
+            else
+            {
+                token = token.Replace("x", "");
+                pieceType = board.SideToMove == 0 ? 0 : 6;
+
+                if (isCapture && token.Length > 2)
+                {
+                    disambiguation = token.Substring(0, token.Length - 2);
+                }
+                destStr = token.Substring(token.Length - 2);
+            }
+
+            int destSquare;
+            if (!EngineHelpers.NotationToIndex.TryGetValue(destStr, out destSquare))
+                return new Move(-1, -1, -1);
+
+            Move bestMatch = new Move(-1, -1, -1);
+
+            for (int i = 0; i < legalCount; i++)
+            {
+                Move m = legalMoves[i];
+                if (m.ToSquare != destSquare) continue;
+                if (m.PieceType != pieceType) continue;
+                if (m.IsPromotion != (promotedPieceType >= 0)) continue;
+                if (promotedPieceType >= 0 && m.PromotedPieceType != promotedPieceType) continue;
+                if (m.IsCapture != isCapture) continue;
+
+                if (disambiguation.Length > 0)
+                {
+                    string fromStr = EngineHelpers.IndexToNotation[m.FromSquare];
+                    bool disambigOk = true;
+                    foreach (char d in disambiguation)
+                    {
+                        bool found = false;
+                        foreach (char f in fromStr)
+                        {
+                            if (char.ToLower(d) == char.ToLower(f)) { found = true; break; }
+                        }
+                        if (!found) { disambigOk = false; break; }
+                    }
+                    if (!disambigOk) continue;
+                }
+
+                bestMatch = m;
+                break;
+            }
+
+            return bestMatch;
+        }
+
+        private int SanPieceCharToType(char c, int sideToMove)
+        {
+            int offset = sideToMove * 6;
+            switch (char.ToUpper(c))
+            {
+                case 'P': return 0 + offset;
+                case 'N': return 1 + offset;
+                case 'B': return 2 + offset;
+                case 'R': return 3 + offset;
+                case 'Q': return 4 + offset;
+                case 'K': return 5 + offset;
+            }
+            return -1;
+        }
+
+        private int SanCharToPromoType(char c)
+        {
+            switch (char.ToUpper(c))
+            {
+                case 'Q': return 4;
+                case 'R': return 3;
+                case 'B': return 2;
+                case 'N': return 1;
+            }
+            return -1;
+        }
+
+        private bool CheckThreefoldRepetitionLocal(List<ulong> history, ulong currentKey)
+        {
+            int count = 0;
+            for (int i = history.Count - 1; i >= 0; i--)
+            {
+                if (history[i] == currentKey) count++;
+                if (count >= 3) return true;
+            }
+            return false;
+        }
+
+        private void AiVsAiButton_Click(object sender, EventArgs e)
+        {
+            if (settingsAiVsAiRunning)
+            {
+                settingsAiVsAiRunning = false;
+                settingsBoard?.StopAiLoop();
+                solvePuzzlesButton.Text = "Start AI vs AI";
+                solvePuzzlesButton.BackColor = Color.FromArgb(75, 105, 55);
+                puzzleProgressLabel.Text = "";
+                return;
+            }
+
+            if (settingsBoard == null) return;
+
+            settingsAiVsAiRunning = true;
+            solvePuzzlesButton.Text = "Stop AI vs AI";
+            solvePuzzlesButton.BackColor = Color.FromArgb(185, 75, 55);
+            puzzleProgressLabel.Text = "AI vs AI running...";
+
+            string currentFen = settingsBoard.GetFen();
+            settingsBoard.EditorMode = false;
+            settingsBoard.LoadFenPosition(currentFen, out _);
+            settingsBoard.StartAiVsAi();
+
+            System.Windows.Forms.Timer monitorTimer = new System.Windows.Forms.Timer();
+            monitorTimer.Interval = 300;
+            monitorTimer.Tick += (s, ev) =>
+            {
+                if (!settingsAiVsAiRunning || settingsBoard == null)
+                {
+                    monitorTimer.Stop();
+                    monitorTimer.Dispose();
+                    return;
+                }
+
+                if (settingsBoard.IsGameOver)
+                {
+                    settingsAiVsAiRunning = false;
+                    settingsBoard.StopAiLoop();
+                    Invoke((MethodInvoker)(() =>
+                    {
+                        solvePuzzlesButton.Text = "Start AI vs AI";
+                        solvePuzzlesButton.BackColor = Color.FromArgb(75, 105, 55);
+                        string fen = settingsBoard.GetFen();
+                        Board checkB = new Board();
+                        if (EngineHelpers.TryLoadFen(checkB, fen, out _))
+                        {
+                            int st = checkB.GetBoardState();
+                            if (st == 0) puzzleProgressLabel.Text = "White won!";
+                            else if (st == 1) puzzleProgressLabel.Text = "Black won!";
+                            else puzzleProgressLabel.Text = "Draw!";
+                        }
+                        settingsBoard.EditorMode = true;
+                    }));
+                    monitorTimer.Stop();
+                    monitorTimer.Dispose();
+                }
+            };
+            monitorTimer.Start();
+        }
+
+        private string GetBoardFen(Board board)
+        {
+            System.Text.StringBuilder fen = new System.Text.StringBuilder();
+            for (int rank = 7; rank >= 0; rank--)
+            {
+                int emptyCount = 0;
+                for (int file = 0; file < 8; file++)
+                {
+                    int square = rank * 8 + file;
+                    int pieceType = board.GetPieceTypeAtSquare(square);
+                    if (pieceType == -1) emptyCount++;
+                    else
+                    {
+                        if (emptyCount > 0) { fen.Append(emptyCount); emptyCount = 0; }
+                        char[] chars = { 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k' };
+                        fen.Append(chars[pieceType]);
+                    }
+                }
+                if (emptyCount > 0) fen.Append(emptyCount);
+                if (rank > 0) fen.Append('/');
+            }
+            fen.Append(' ');
+            fen.Append(board.SideToMove == 0 ? 'w' : 'b');
+            fen.Append(" - - 0 1");
+            return fen.ToString();
+        }
+
+        private string FindPuzzlesCsv()
+        {
+            DirectoryInfo dir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+            while (dir != null)
+            {
+                string candidate = Path.Combine(dir.FullName, "chessEngine", "src", "Puzzles.csv");
+                if (File.Exists(candidate)) return candidate;
+                candidate = Path.Combine(dir.FullName, "Puzzles.csv");
+                if (File.Exists(candidate)) return candidate;
+                dir = dir.Parent;
+            }
+            return null;
         }
 
         private void PvpButton_Click(object sender, EventArgs e)
@@ -344,6 +1144,11 @@ namespace StockfishV0
 
         private void BackButtonToMain_Click(object sender, EventArgs e)
         {
+            if (settingsAiVsAiRunning)
+            {
+                settingsAiVsAiRunning = false;
+                settingsBoard?.StopAiLoop();
+            }
             ShowMainMenuScreen();
         }
 
@@ -392,6 +1197,7 @@ namespace StockfishV0
             colorSelectPanel.Visible = false;
             gamePanel.Visible = false;
             settingsPanel.Visible = false;
+            if (puzzlePanel != null) puzzlePanel.Visible = false;
 
             mainMenuPanel.BringToFront();
         }
@@ -403,6 +1209,7 @@ namespace StockfishV0
             colorSelectPanel.Visible = false;
             gamePanel.Visible = false;
             settingsPanel.Visible = false;
+            if (puzzlePanel != null) puzzlePanel.Visible = false;
 
             playPanel.BringToFront();
         }
@@ -414,6 +1221,7 @@ namespace StockfishV0
             colorSelectPanel.Visible = true;
             gamePanel.Visible = false;
             settingsPanel.Visible = false;
+            if (puzzlePanel != null) puzzlePanel.Visible = false;
 
             colorSelectPanel.BringToFront();
         }
@@ -425,6 +1233,7 @@ namespace StockfishV0
             colorSelectPanel.Visible = false;
             gamePanel.Visible = true;
             settingsPanel.Visible = false;
+            if (puzzlePanel != null) puzzlePanel.Visible = false;
 
             gamePanel.BringToFront();
 
@@ -446,8 +1255,26 @@ namespace StockfishV0
             colorSelectPanel.Visible = false;
             gamePanel.Visible = false;
             settingsPanel.Visible = true;
+            if (puzzlePanel != null) puzzlePanel.Visible = false;
 
             settingsPanel.BringToFront();
+
+            if (settingsBoard != null && chessBoard != null)
+            {
+                string fen = chessBoard.GetFen();
+                settingsBoard.LoadFenPosition(fen, out _);
+                if (fenTextBox != null)
+                    fenTextBox.Text = fen;
+            }
+
+            settingsAiVsAiRunning = false;
+            if (settingsBoard != null) settingsBoard.EditorMode = true;
+            if (solvePuzzlesButton != null)
+            {
+                solvePuzzlesButton.Text = "Start AI vs AI";
+                solvePuzzlesButton.BackColor = Color.FromArgb(75, 105, 55);
+            }
+            if (puzzleProgressLabel != null) puzzleProgressLabel.Text = "";
         }
     }
 
@@ -467,9 +1294,12 @@ namespace StockfishV0
         private bool flipBoardEveryMove = false;
         private bool boardInputLocked = false;
         private int boardFlipDelayMs = 20;
+        
         private const int aiVsAiMoveDelayMs = 100;
 
         private readonly List<Move> selectedPieceLegalMoves = new List<Move>();
+
+        private readonly List<ulong> positionKeyHistory = new List<ulong>();
 
         private Panel promotionPanel = null;
         private bool promotionChoiceOpen = false;
@@ -497,8 +1327,28 @@ namespace StockfishV0
         private int selectedEngineSquare = -1;
         private string draggedPiece = "";
         private Point dragPoint = Point.Empty;
-
-        private bool showEngineBar = true;
+        public bool showEngineBar = true;
+        public bool ShowEngineBar { get => showEngineBar; set { showEngineBar = value; Invalidate(); } }
+        private bool editorMode = false;
+        public bool EditorMode
+        {
+            get => editorMode;
+            set => editorMode = value;
+        }
+        public bool IsGameOver => gameIsOver;
+        public int PalettePieceType { get; set; } = -1;
+        public Image GetPieceImage(string pieceCode)
+        {
+            if (pieceImages.TryGetValue(pieceCode, out Image img))
+                return img;
+            return null;
+        }
+        public event Action OnBoardChanged;
+        public int BoardPerspective
+        {
+            get => boardPerspective;
+            set { boardPerspective = value; Invalidate(); }
+        }
 
         private readonly bool[,] moveDots = new bool[8, 8];
         private readonly bool[,] captureCircles = new bool[8, 8];
@@ -571,6 +1421,9 @@ namespace StockfishV0
             aiMoveQueued = false;
             boardInputLocked = false;
 
+            positionKeyHistory.Clear();
+            positionKeyHistory.Add(engineBoard.ZobristKey);
+
             //ResetBoard();
 
             UpdateBoardPerspectiveForTurn();
@@ -587,7 +1440,30 @@ namespace StockfishV0
             boardInputLocked = false;
         }
 
-        public bool LoadFenPosition(string fen, out string error) // ***
+        public void StartAiVsAi()
+        {
+            aiEnabled = true;
+            aiVsAiEnabled = true;
+            humanColor = -1;
+            aiColor = -1;
+            flipBoardEveryMove = false;
+            boardPerspective = 0;
+            aiMoveQueued = false;
+            boardInputLocked = false;
+            editorMode = false;
+
+            gameIsOver = false;
+            gameOverState = -1;
+            gameOverTitle = "";
+            gameOverSubtitle = "";
+
+            lastMoveFromSquare = -1;
+            lastMoveToSquare = -1;
+
+            QueueBotMoveIfNeeded();
+        }
+
+        public bool LoadFenPosition(string fen, out string error) // WIP
         {
             StopAiLoop();
 
@@ -617,6 +1493,9 @@ namespace StockfishV0
             lastMoveFromSquare = -1;
             lastMoveToSquare = -1;
             engineEvalCentipawns = engineBoard.GetBoardEval();
+
+            positionKeyHistory.Clear();
+            positionKeyHistory.Add(engineBoard.ZobristKey);
 
             HidePromotionDropdown();
             ClearSelectedPiece();
@@ -808,6 +1687,23 @@ namespace StockfishV0
 
             if (e.Button == MouseButtons.Right)
             {
+                if (editorMode)
+                {
+                    if (GetSquareFromPoint(e.Location, out row, out col))
+                    {
+                        int esq = VisualToEngineSquare(row, col);
+                        for (int j = 0; j < 12; j++)
+                            engineBoard.Pieces[j] &= ~(1UL << esq);
+                        engineBoard.ComputeInitialOccupancy();
+                        engineBoard.ZobristKey = engineBoard.GenerateKey();
+                        lastMoveFromSquare = -1;
+                        lastMoveToSquare = -1;
+                        OnBoardChanged?.Invoke();
+                        Invalidate();
+                    }
+                    return;
+                }
+
                 if (GetSquareFromPoint(e.Location, out row, out col))
                 {
                     isDrawingArrow = true;
@@ -834,7 +1730,7 @@ namespace StockfishV0
             {
                 return;
             }
-            if (!IsHumanTurn())
+            if (!editorMode && !IsHumanTurn())
             {
                 ClearSelectedPiece();
                 Invalidate();
@@ -850,9 +1746,31 @@ namespace StockfishV0
 
             int engineSquare = VisualToEngineSquare(row, col);
 
-            // If a piece is already selected, first check whether this click is a legal target.
+            if (editorMode && PalettePieceType >= 0)
+            {
+                for (int j = 0; j < 12; j++)
+                    engineBoard.Pieces[j] &= ~(1UL << engineSquare);
+                engineBoard.Pieces[PalettePieceType] |= 1UL << engineSquare;
+                engineBoard.ComputeInitialOccupancy();
+                engineBoard.ZobristKey = engineBoard.GenerateKey();
+                lastMoveFromSquare = -1;
+                lastMoveToSquare = -1;
+                OnBoardChanged?.Invoke();
+                Invalidate();
+                return;
+            }
+
             if (hasSelectedPiece)
             {
+                if (editorMode)
+                {
+                    MakeEditorMove(selectedEngineSquare, engineSquare);
+                    ClearSelectedPiece();
+                    Capture = false;
+                    Cursor = Cursors.Default;
+                    Invalidate();
+                    return;
+                }
                 if (TryMakeSelectedMoveToSquare(engineSquare))
                 {
                     ClearSelectedPiece();
@@ -876,14 +1794,27 @@ namespace StockfishV0
 
             int pieceColor = GetColorFromPieceType(pieceType);
 
-            if (pieceColor != engineBoard.SideToMove)
+            if (!editorMode && pieceColor != engineBoard.SideToMove)
             {
                 ClearSelectedPiece();
                 Invalidate();
                 return;
             }
 
-            SelectPieceAtSquare(row, col, engineSquare, pieceType);
+            if (editorMode)
+            {
+                selectedRow = row;
+                selectedCol = col;
+                selectedEngineSquare = engineSquare;
+                draggedPiece = GetPieceCodeFromPieceType(pieceType);
+                hasSelectedPiece = true;
+                ClearMoveHints();
+                selectedPieceLegalMoves.Clear();
+            }
+            else
+            {
+                SelectPieceAtSquare(row, col, engineSquare, pieceType);
+            }
 
             isDragging = true;
             dragPoint = e.Location;
@@ -988,7 +1919,12 @@ namespace StockfishV0
 
                 if (targetEngineSquare != selectedEngineSquare)
                 {
-                    if (TryMakeSelectedMoveToSquare(targetEngineSquare))
+                    if (editorMode)
+                    {
+                        MakeEditorMove(selectedEngineSquare, targetEngineSquare);
+                        moveWasMade = true;
+                    }
+                    else if (TryMakeSelectedMoveToSquare(targetEngineSquare))
                     {
                         moveWasMade = true;
                     }
@@ -1108,6 +2044,19 @@ namespace StockfishV0
             }
         }
 
+        private bool CheckThreefoldRepetition()
+        {
+            if (positionKeyHistory.Count < 3) return false;
+            ulong currentKey = engineBoard.ZobristKey;
+            int count = 0;
+            for (int i = positionKeyHistory.Count - 1; i >= 0; i--)
+            {
+                if (positionKeyHistory[i] == currentKey) count++;
+                if (count >= 3) return true;
+            }
+            return false;
+        }
+
         private bool TryMakeSelectedMoveToSquare(int targetEngineSquare)
         {
             if (!hasSelectedPiece)
@@ -1144,7 +2093,23 @@ namespace StockfishV0
             SetLastMoveHighlight(move);
             engineEvalCentipawns = engineBoard.GetBoardEval();
 
-            CheckGameOverState();
+            positionKeyHistory.Add(engineBoard.ZobristKey);
+
+            if (CheckThreefoldRepetition())
+            {
+                gameIsOver = true;
+                gameOverState = 2;
+                gameOverTitle = "DRAW";
+                gameOverSubtitle = "Threefold Repetition";
+                HidePromotionDropdown();
+                ClearSelectedPiece();
+                boardInputLocked = false;
+                aiMoveQueued = false;
+            }
+            else
+            {
+                CheckGameOverState();
+            }
 
             Invalidate();
 
@@ -1343,6 +2308,137 @@ namespace StockfishV0
             return engineBoard.SideToMove == humanColor;
         }
 
+        public void MakeEditorMove(int fromSquare, int toSquare)
+        {
+            int pieceType = GetPieceTypeAtSquare(fromSquare);
+            if (pieceType == -1) return;
+
+            engineBoard.Pieces[pieceType] &= ~(1UL << fromSquare);
+
+            for (int i = 0; i < 12; i++)
+                engineBoard.Pieces[i] &= ~(1UL << toSquare);
+
+            int targetPieceType = pieceType;
+            if (pieceType == 0 && toSquare >= 56)
+                targetPieceType = 4;
+            else if (pieceType == 6 && toSquare <= 7)
+                targetPieceType = 10;
+
+            engineBoard.Pieces[targetPieceType] |= 1UL << toSquare;
+            engineBoard.ComputeInitialOccupancy();
+            engineBoard.ZobristKey = engineBoard.GenerateKey();
+            boardPerspective = engineBoard.SideToMove;
+            lastMoveFromSquare = fromSquare;
+            lastMoveToSquare = toSquare;
+            engineEvalCentipawns = engineBoard.GetBoardEval();
+            CheckGameOverState();
+            OnBoardChanged?.Invoke();
+            Invalidate();
+        }
+
+        private void ShowPieceContextMenu(Point location, int targetSquare)
+        {
+            ContextMenuStrip menu = new ContextMenuStrip();
+            menu.BackColor = Color.FromArgb(42, 42, 42);
+            menu.ForeColor = Color.White;
+            menu.Font = new Font("Arial", 9);
+
+            string[] pieceCodes = { "wP", "wN", "wB", "wR", "wQ", "wK", "bP", "bN", "bB", "bR", "bQ", "bK" };
+            string[] pieceNames = { "White Pawn", "White Knight", "White Bishop", "White Rook", "White Queen", "White King",
+                                    "Black Pawn", "Black Knight", "Black Bishop", "Black Rook", "Black Queen", "Black King" };
+            int[] pieceTypes = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+
+            for (int i = 0; i < pieceCodes.Length; i++)
+            {
+                int pt = pieceTypes[i];
+                int ts = targetSquare;
+                ToolStripMenuItem item = new ToolStripMenuItem(pieceNames[i]);
+
+                if (pieceImages.ContainsKey(pieceCodes[i]))
+                {
+                    int imgSize = 16;
+                    item.Image = new Bitmap(pieceImages[pieceCodes[i]], imgSize, imgSize);
+                }
+
+                item.Click += (s, e) =>
+                {
+                    for (int j = 0; j < 12; j++)
+                        engineBoard.Pieces[j] &= ~(1UL << ts);
+                    engineBoard.Pieces[pt] |= 1UL << ts;
+                    engineBoard.ComputeInitialOccupancy();
+                    engineBoard.ZobristKey = engineBoard.GenerateKey();
+                    lastMoveFromSquare = -1;
+                    lastMoveToSquare = -1;
+                    OnBoardChanged?.Invoke();
+                    Invalidate();
+                };
+                menu.Items.Add(item);
+            }
+
+            menu.Show(this, location);
+        }
+
+        public string GetFen()
+        {
+            System.Text.StringBuilder fen = new System.Text.StringBuilder();
+            for (int rank = 7; rank >= 0; rank--)
+            {
+                int emptyCount = 0;
+                for (int file = 0; file < 8; file++)
+                {
+                    int square = rank * 8 + file;
+                    int pieceType = GetPieceTypeAtSquare(square);
+                    if (pieceType == -1)
+                    {
+                        emptyCount++;
+                    }
+                    else
+                    {
+                        if (emptyCount > 0) { fen.Append(emptyCount); emptyCount = 0; }
+                        fen.Append(PieceTypeToFenChar(pieceType));
+                    }
+                }
+                if (emptyCount > 0) fen.Append(emptyCount);
+                if (rank > 0) fen.Append('/');
+            }
+
+            fen.Append(' ');
+            fen.Append(engineBoard.SideToMove == 0 ? 'w' : 'b');
+
+            fen.Append(' ');
+            string castling = "";
+            if ((engineBoard.CastlingRights & 1) != 0) castling += "K";
+            if ((engineBoard.CastlingRights & 2) != 0) castling += "Q";
+            if ((engineBoard.CastlingRights & 4) != 0) castling += "k";
+            if ((engineBoard.CastlingRights & 8) != 0) castling += "q";
+            fen.Append(castling.Length > 0 ? castling : "-");
+
+            fen.Append(' ');
+            if (engineBoard.EnPassantSquare >= 0)
+            {
+                int epFile = engineBoard.EnPassantSquare % 8;
+                int epRank = engineBoard.EnPassantSquare / 8;
+                fen.Append((char)('a' + epFile));
+                fen.Append((char)('1' + epRank));
+            }
+            else
+            {
+                fen.Append('-');
+            }
+
+            fen.Append(' ');
+            fen.Append(engineBoard.HalfMoveClock);
+            fen.Append(" 1");
+
+            return fen.ToString();
+        }
+
+        private char PieceTypeToFenChar(int pieceType)
+        {
+            char[] chars = { 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k' };
+            return chars[pieceType];
+        }
+
         private void QueueBotMoveIfNeeded()
         {
             if (!aiEnabled)
@@ -1427,23 +2523,21 @@ namespace StockfishV0
                     return;
                 }
 
-                int d = 6;
+                int d = 7;
                 if (engineBoard.GameType == 1)
                 {
                     d = 8;
                 }
                 else if (engineBoard.GameType == 2)
                 {
-                    d = 11;
+                    d = 10;
                 }
 
                 boardInputLocked = true;
 
                 Board aiSandboxBoard = engineBoard.Clone();
 
-                var sw = Stopwatch.StartNew();
                 Move botMove = await Task.Run(() => Bot.Think(aiSandboxBoard, d, 0));
-                Debug.WriteLine($"[PERF] Total Think(depth={d}) took {sw.Elapsed.TotalSeconds:F2}s");
 
                 if (!IsValidBotMove(botMove, engineBoard))
                 {
@@ -1459,7 +2553,23 @@ namespace StockfishV0
                 SetLastMoveHighlight(botMove);
                 engineEvalCentipawns = engineBoard.GetBoardEval();
 
-                CheckGameOverState();
+                positionKeyHistory.Add(engineBoard.ZobristKey);
+
+                if (CheckThreefoldRepetition())
+                {
+                    gameIsOver = true;
+                    gameOverState = 2;
+                    gameOverTitle = "DRAW";
+                    gameOverSubtitle = "Threefold Repetition";
+                    HidePromotionDropdown();
+                    ClearSelectedPiece();
+                    boardInputLocked = false;
+                    aiMoveQueued = false;
+                }
+                else
+                {
+                    CheckGameOverState();
+                }
 
                 if (!gameIsOver)
                 {
@@ -2126,7 +3236,7 @@ namespace StockfishV0
 
             if (rowDistance == 2 && colDistance == 1)
             {
-                // Two squares vertically, then one square horizontally.
+                
                 PointF corner = GetSquareCenter(
                     boardX,
                     boardY,
@@ -2139,7 +3249,7 @@ namespace StockfishV0
             }
             else if (rowDistance == 1 && colDistance == 2)
             {
-                // Two squares horizontally, then one square vertically.
+                
                 PointF corner = GetSquareCenter(
                     boardX,
                     boardY,

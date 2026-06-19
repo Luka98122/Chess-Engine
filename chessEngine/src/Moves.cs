@@ -1,7 +1,6 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Numerics;
-using System.Reflection.Metadata.Ecma335;
+
 
 namespace ChessEngine
 {
@@ -78,7 +77,7 @@ namespace ChessEngine
 
     public static class PawnMoveGenerator
     {
-        // Masks to prevent pawns from wrapping around the board edges during diagonal captures
+        //maske koje se koriste da pijun nemoze da jede preko ivice table
         public const ulong NotFileA = 0xFEFEFEFEFEFEFEFEUL;
         public const ulong NotFileH = 0x7F7F7F7F7F7F7F7FUL;
 
@@ -100,7 +99,6 @@ namespace ChessEngine
             return moveCount;
         }
 
-        // The optimized signature: Pass the board state, the pawn bitboard, the color, and the target Span.
         public static int GetPawnMoves(Board b, ulong pawns, int color, Span<Move> moves)
         {
             int moveCount = 0;
@@ -109,20 +107,20 @@ namespace ChessEngine
             ulong blackPieces = b.BlackOccupancy;
             ulong empty = ~(whitePieces | blackPieces);
 
-            if (color == 0) // White (PieceType 0)
+            if (color == 0) //beli
             {
-                // --- Single Pushes ---
+                //obican korak
                 ulong singlePushes = (pawns << 8) & empty;
                 ulong iter = singlePushes;
                 while (iter != 0)
                 {
                     int toSquare = BitOperations.TrailingZeroCount(iter);
                     moveCount = AddPawnMove(moves, moveCount, toSquare - 8, toSquare, 0, false);
-                    iter &= iter - 1; // Clears the least significant '1' bit
+                    iter &= iter - 1;
                 }
 
-                // --- Double Pushes ---
-                // Mask with Rank 3 (0x0000000000FF0000) to ensure only pawns that just pushed from Rank 2 can push again
+                //dupli korak
+                //maska sa trecim redom da proverimo da samo korektni pijuni smeju dupli korak
                 ulong doublePushes = ((singlePushes & 0x0000000000FF0000UL) << 8) & empty;
                 iter = doublePushes;
                 while (iter != 0)
@@ -132,7 +130,7 @@ namespace ChessEngine
                     iter &= iter - 1;
                 }
 
-                // --- Captures Left (Towards A-File) ---
+                //jede levo
                 ulong capturesLeft = ((pawns & NotFileA) << 7) & blackPieces;
                 iter = capturesLeft;
                 while (iter != 0)
@@ -143,7 +141,7 @@ namespace ChessEngine
                     iter &= iter - 1;
                 }
 
-                // --- Captures Right (Towards H-File) ---
+                //jede desno
                 ulong capturesRight = ((pawns & NotFileH) << 9) & blackPieces;
                 iter = capturesRight;
                 while (iter != 0)
@@ -154,7 +152,7 @@ namespace ChessEngine
                     iter &= iter - 1;
                 }
 
-                // --- En Passant ---
+                //en passanttttttt en croissant
                 if (b.EnPassantSquare != -1)
                 {
                     int epSq = b.EnPassantSquare;
@@ -166,9 +164,9 @@ namespace ChessEngine
                         moves[moveCount++] = new Move(fromRight, epSq, 0, true) { IsEnPassant = true, CapturedPieceType = 6 };
                 }
             }
-            else // Black (PieceType 6)
+            else //crni
             {
-                // --- Single Pushes ---
+                //jedan korak
                 ulong singlePushes = (pawns >> 8) & empty;
                 ulong iter = singlePushes;
                 while (iter != 0)
@@ -178,8 +176,8 @@ namespace ChessEngine
                     iter &= iter - 1;
                 }
 
-                // --- Double Pushes ---
-                // Mask with Rank 6 (0x0000FF0000000000)
+                //dupli korak
+                //ovaj put maska sa 6 redom jer je suprotno
                 ulong doublePushes = ((singlePushes & 0x0000FF0000000000UL) >> 8) & empty;
                 iter = doublePushes;
                 while (iter != 0)
@@ -189,7 +187,7 @@ namespace ChessEngine
                     iter &= iter - 1;
                 }
 
-                // --- Captures Left (From Black's perspective, down towards A-File) ---
+                //jede levo
                 ulong capturesLeft = ((pawns & NotFileA) >> 9) & whitePieces;
                 iter = capturesLeft;
                 while (iter != 0)
@@ -200,7 +198,7 @@ namespace ChessEngine
                     iter &= iter - 1;
                 }
 
-                // --- Captures Right (From Black's perspective, down towards H-File) ---
+                //jede desno
                 ulong capturesRight = ((pawns & NotFileH) >> 7) & whitePieces;
                 iter = capturesRight;
                 while (iter != 0)
@@ -211,7 +209,7 @@ namespace ChessEngine
                     iter &= iter - 1;
                 }
 
-                // --- En Passant ---
+                // google en passant
                 if (b.EnPassantSquare != -1)
                 {
                     int epSq = b.EnPassantSquare;
@@ -224,21 +222,21 @@ namespace ChessEngine
                 }
             }
 
-            // Return the total number of moves injected into the Span
+            //broj moveova dodat u Span<> (Span je vljd efikasniji jer se ne gc i allocira samo na pocetku)
             return moveCount;
         }
     }
 
     public static class RookMoveGenerator
     {
-        // 1. Core Arrays for Magic Bitboards
+        
         public static ulong[] RookMasks = new ulong[64];
         public static ulong[][] RookAttacks = new ulong[64][];
 
 
         public static int[] RookRelevantBits = new int[64];
 
-        public static readonly ulong[] RookMagics = new ulong[64] {
+        public static readonly ulong[] RookMagics = new ulong[64] { //Izracunato preko brute force, postoji vise validnih odgovora
             0x0A80011040008060UL, // Square 0
             0x424000E000401000UL, // Square 1
             0x2880088010042000UL, // Square 2
@@ -312,7 +310,7 @@ namespace ChessEngine
             ulong friendlyPieces = color == 0 ? b.WhiteOccupancy : b.BlackOccupancy;
             ulong enemyPieces = color == 0 ? b.BlackOccupancy : b.WhiteOccupancy;
             ulong occupied = b.WhiteOccupancy | b.BlackOccupancy;
-            int pieceType = color == 0 ? 3 : 9; // 3 = White Rook, 9 = Black Rook
+            int pieceType = color == 0 ? 3 : 9; 
 
             ulong rooksIter = rooks;
             while (rooksIter != 0)
@@ -350,17 +348,16 @@ namespace ChessEngine
         {
             for (int square = 0; square < 64; square++)
             {
-                // 1. Get the relevant blocker mask for this square (ignoring board edges)
+                //relevant blocker maska
                 RookMasks[square] = CreateRookMask(square);
                 RookRelevantBits[square] = BitOperations.PopCount(RookMasks[square]);
 
-                // Alociranje memorije O(2^n)w
                 int permutationCount = 1 << RookRelevantBits[square];
                 RookAttacks[square] = new ulong[permutationCount];
 
 
                 ulong mask = RookMasks[square];
-                ulong blockerPattern = 0; // Carry-Rippler
+                ulong blockerPattern = 0; // Carry-Rippler trik
 
                 do
                 {
@@ -383,28 +380,28 @@ namespace ChessEngine
             int r = square / 8;
             int f = square % 8;
 
-            // North
+            //N
             for (int i = r + 1; i <= 6; i++)
             {
                 int targetSquare = i * 8 + f;
                 mask |= (1UL << targetSquare);
             }
 
-            // South
+            //S
             for (int i = r - 1; i >= 1; i--)
             {
                 int targetSquare = i * 8 + f;
                 mask |= (1UL << targetSquare);
             }
 
-            // East
+            //E
             for (int i = f + 1; i <= 6; i++)
             {
                 int targetSquare = r * 8 + i;
                 mask |= (1UL << targetSquare);
             }
 
-            // West
+            //W
             for (int i = f - 1; i >= 1; i--)
             {
                 int targetSquare = r * 8 + i;
@@ -420,7 +417,7 @@ namespace ChessEngine
             int r = square / 8;
             int f = square % 8;
 
-            // North
+            // N
             for (int i = r + 1; i <= 7; i++)
             {
                 int targetSquare = i * 8 + f;
@@ -435,7 +432,7 @@ namespace ChessEngine
                 }
             }
 
-            // South
+            //S
             for (int i = r - 1; i >= 0; i--)
             {
                 int targetSquare = i * 8 + f;
@@ -449,7 +446,7 @@ namespace ChessEngine
                 }
             }
 
-            // East
+            // Ee
             for (int i = f + 1; i <= 7; i++)
             {
                 int targetSquare = r * 8 + i;
@@ -463,7 +460,7 @@ namespace ChessEngine
                 }
             }
 
-            // West
+            // W
             for (int i = f - 1; i >= 0; i--)
             {
                 int targetSquare = r * 8 + i;
@@ -488,7 +485,7 @@ namespace ChessEngine
         public static int[] BishopRelevantBits = new int[64];
 
 
-        public static readonly ulong[] BishopMagics = new ulong[64] {
+        public static readonly ulong[] BishopMagics = new ulong[64] { // Isto izracunato preko brute force, ima vise validnih resenja
             0x800202680E008200UL, // Square 0
             0x1010020801102004UL, // Square 1
             0x0008024400280804UL, // Square 2
@@ -562,7 +559,7 @@ namespace ChessEngine
             ulong friendlyPieces = color == 0 ? b.WhiteOccupancy : b.BlackOccupancy;
             ulong enemyPieces = color == 0 ? b.BlackOccupancy : b.WhiteOccupancy;
             ulong occupied = b.WhiteOccupancy | b.BlackOccupancy;
-            int pieceType = color == 0 ? 2 : 8; // 2 = White Bishop, 8 = Black Bishop
+            int pieceType = color == 0 ? 2 : 8;
 
             ulong bishopsIter = bishops;
             while (bishopsIter != 0)
@@ -620,28 +617,28 @@ namespace ChessEngine
             int r = square / 8;
             int f = square % 8;
 
-            // North-East (NE)
+            //NE
             for (int i = r + 1, j = f + 1; i <= 6 && j <= 6; i++, j++)
             {
                 int targetSquare = i * 8 + j;
                 mask |= (1UL << targetSquare);
             }
 
-            // North-West (NW)
+            //NW
             for (int i = r + 1, j = f - 1; i <= 6 && j >= 1; i++, j--)
             {
                 int targetSquare = i * 8 + j;
                 mask |= (1UL << targetSquare);
             }
 
-            // South-East (SE)
+            //SE
             for (int i = r - 1, j = f + 1; i >= 1 && j <= 6; i--, j++)
             {
                 int targetSquare = i * 8 + j;
                 mask |= (1UL << targetSquare);
             }
 
-            // South-West (SW)
+            //SW
             for (int i = r - 1, j = f - 1; i >= 1 && j >= 1; i--, j--)
             {
                 int targetSquare = i * 8 + j;
@@ -657,7 +654,7 @@ namespace ChessEngine
             int r = square / 8;
             int f = square % 8;
 
-            // North-East (NE)
+            //NE
             for (int i = r + 1, j = f + 1; i <= 7 && j <= 7; i++, j++)
             {
                 int targetSquare = i * 8 + j;
@@ -671,7 +668,7 @@ namespace ChessEngine
                 }
             }
 
-            // North-West (NW)
+            //NW
             for (int i = r + 1, j = f - 1; i <= 7 && j >= 0; i++, j--)
             {
                 int targetSquare = i * 8 + j;
@@ -685,7 +682,7 @@ namespace ChessEngine
                 }
             }
 
-            // South-East (SE)
+            //SE
             for (int i = r - 1, j = f + 1; i >= 0 && j <= 7; i--, j++)
             {
                 int targetSquare = i * 8 + j;
@@ -699,7 +696,7 @@ namespace ChessEngine
                 }
             }
 
-            // South-West (SW)
+            //SW
             for (int i = r - 1, j = f - 1; i >= 0 && j >= 0; i--, j--)
             {
                 int targetSquare = i * 8 + j;
@@ -726,24 +723,24 @@ namespace ChessEngine
             ulong friendlyPieces = color == 0 ? b.WhiteOccupancy : b.BlackOccupancy;
             ulong enemyPieces = color == 0 ? b.BlackOccupancy : b.WhiteOccupancy;
             ulong occupied = b.WhiteOccupancy | b.BlackOccupancy;
-            int pieceType = color == 0 ? 4 : 10; // 4 = White Queen, 10 = Black Queen
+            int pieceType = color == 0 ? 4 : 10; 
 
             ulong queensIter = queens;
             while (queensIter != 0)
             {
                 int fromSquare = BitOperations.TrailingZeroCount(queensIter);
 
-                // Look up Rook Attacks
+                // Top napadi odavde
                 ulong rookBlockers = occupied & RookMoveGenerator.RookMasks[fromSquare];
                 int rookMagicIndex = (int)((rookBlockers * RookMoveGenerator.RookMagics[fromSquare]) >> (64 - RookMoveGenerator.RookRelevantBits[fromSquare]));
                 ulong rookAttacks = RookMoveGenerator.RookAttacks[fromSquare][rookMagicIndex];
 
-                // Look up Bishop Attacks
+                //Lovac napadi odavde
                 ulong bishopBlockers = occupied & BishopMoveGenerator.BishopMasks[fromSquare];
                 int bishopMagicIndex = (int)((bishopBlockers * BishopMoveGenerator.BishopMagics[fromSquare]) >> (64 - BishopMoveGenerator.BishopRelevantBits[fromSquare]));
                 ulong bishopAttacks = BishopMoveGenerator.BishopAttacks[fromSquare][bishopMagicIndex];
 
-                // OR them together
+                // kraljica = top napadi OR lovac napadi :p
                 ulong attacks = (rookAttacks | bishopAttacks) & ~friendlyPieces;
 
                 ulong attacksIter = attacks;
@@ -831,16 +828,14 @@ namespace ChessEngine
                 kingsIter &= kingsIter - 1;
             }
 
-            // Castling Moves
-            if (color == 0) // White
+            //Rokadaaaaa
+            if (color == 0) // Beli
             {
-                // Kingside (Bit 0 is set)
+                //kratka
                 if ((b.CastlingRights & 1) != 0)
                 {
-                    // Check if f1 (5) and g1 (6) are completely empty
                     if ((occupied & ((1UL << 5) | (1UL << 6))) == 0)
                     {
-                        // Check if e1 (4), f1 (5), or g1 (6) are under attack
                         if (!b.IsSquareAttacked(4, 1) && !b.IsSquareAttacked(5, 1) && !b.IsSquareAttacked(6, 1))
                         {
                             moves[moveCount++] = new Move(4, 6, pieceType) { IsCastle = true };
@@ -848,13 +843,11 @@ namespace ChessEngine
                     }
                 }
 
-                // Queenside (Bit 1 is set)
+                // duga
                 if ((b.CastlingRights & 2) != 0)
                 {
-                    // Check if b1 (1), c1 (2), and d1 (3) are completely empty
                     if ((occupied & ((1UL << 1) | (1UL << 2) | (1UL << 3))) == 0)
                     {
-                        // Check if e1 (4), d1 (3), or c1 (2) are under attack (b1 doesn't matter for attacks per chess rules)
                         if (!b.IsSquareAttacked(4, 1) && !b.IsSquareAttacked(3, 1) && !b.IsSquareAttacked(2, 1))
                         {
                             moves[moveCount++] = new Move(4, 2, pieceType) { IsCastle = true };
@@ -862,15 +855,13 @@ namespace ChessEngine
                     }
                 }
             }
-            else // Black
+            else // crni
             {
-                // Kingside (Bit 2 is set)
+                // kratka
                 if ((b.CastlingRights & 4) != 0)
                 {
-                    // Check if f8 (61) and g8 (62) are completely empty
                     if ((occupied & ((1UL << 61) | (1UL << 62))) == 0)
                     {
-                        // Check if e8 (60), f8 (61), or g8 (62) are under attack
                         if (!b.IsSquareAttacked(60, 0) && !b.IsSquareAttacked(61, 0) && !b.IsSquareAttacked(62, 0))
                         {
                             moves[moveCount++] = new Move(60, 62, pieceType) { IsCastle = true };
@@ -878,13 +869,11 @@ namespace ChessEngine
                     }
                 }
 
-                // Queenside (Bit 3 is set)
+                // duga
                 if ((b.CastlingRights & 8) != 0)
                 {
-                    // Check if b8 (57), c8 (58), and d8 (59) are completely empty
                     if ((occupied & ((1UL << 57) | (1UL << 58) | (1UL << 59))) == 0)
                     {
-                        // Check if e8 (60), d8 (59), or c8 (58) are under attack
                         if (!b.IsSquareAttacked(60, 0) && !b.IsSquareAttacked(59, 0) && !b.IsSquareAttacked(58, 0))
                         {
                             moves[moveCount++] = new Move(60, 58, pieceType) { IsCastle = true };
@@ -904,23 +893,18 @@ namespace ChessEngine
             int totalMoves = 0;
             int color = col;
 
-            // 1. Generate Pawn Moves
             int pawnCount = PawnMoveGenerator.GetPawnMoves(b, b.Pieces[color == 0 ? 0 : 6], color, moves);
             totalMoves += pawnCount;
 
-            // 2. Generate Knight Moves
             int knightCount = KnightMoveGenerator.GetKnightMoves(b, b.Pieces[color == 0 ? 1 : 7], color, moves.Slice(totalMoves));
             totalMoves += knightCount;
 
-            // 3. Generate Rook Moves
             int rookCount = RookMoveGenerator.GetRookMoves(b, b.Pieces[color == 0 ? 3 : 9], color, moves.Slice(totalMoves));
             totalMoves += rookCount;
 
-            // 4. Generate Bishop Moves
             int bishopCount = BishopMoveGenerator.GetBishopMoves(b, b.Pieces[color == 0 ? 2 : 8], color, moves.Slice(totalMoves));
             totalMoves += bishopCount;
 
-            // 5. Generate Queen Moves
             int queenCount = QueenMoveGenerator.GetQueenMoves(b, b.Pieces[color == 0 ? 4 : 10], color, moves.Slice(totalMoves));
             totalMoves += queenCount;
 
@@ -955,7 +939,7 @@ namespace ChessEngine
             return ind;
         }
 
-        public static int GenerateAllLegalCaptures(Board b, Span<Move> moves, int col)
+        public static int GenerateAllLegalCaptures(Board b, Span<Move> moves, int col) // mala opt. za Quiescence  search
         {
             int generatedMoves = GenerateAllPseudoLegalMoves(b, moves, col);
             int ind = 0;
