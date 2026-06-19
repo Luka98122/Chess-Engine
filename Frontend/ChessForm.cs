@@ -6,7 +6,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Windows.Forms;
 
-namespace StockfishV0
+namespace Frontend
 {
     public class ChessForm : Form
     {
@@ -50,7 +50,7 @@ namespace StockfishV0
 
         public ChessForm()
         {
-            Text = "StockfishV0";
+            Text = "Frontend";
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Color.FromArgb(32, 32, 32);
             ClientSize = new Size(1000, 900);
@@ -78,7 +78,7 @@ namespace StockfishV0
 
             TableLayoutPanel layout = CreateMenuLayout();
 
-            Label title = CreateTitleLabel("StockfishV0", 42);
+            Label title = CreateTitleLabel("Frontend", 42);
 
             Button playButton = CreateMenuButton("PLAY");
             playButton.Click += PlayButton_Click;
