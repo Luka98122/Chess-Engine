@@ -6,6 +6,8 @@ Co-developed with [Stribor Pavlović](https://github.com/spav-s).
 
 <div align="center">
   <img src="https://github.com/user-attachments/assets/07bad375-5dc5-4f2a-b3fd-753a7acc9c0e" width="800" alt="Demo AI v AI" />
+  <br>
+  <sub><em>Demo: AI vs AI Gameplay, where black is using a larger depth</em></sub>
 </div>
 
 ## Engine Highlights
@@ -43,6 +45,8 @@ Co-developed with [Stribor Pavlović](https://github.com/spav-s).
 
 <div align="center">
   <img src="https://github.com/user-attachments/assets/9b750719-dd40-467e-b915-034b142dbb6f" width="800" alt="Demo Puzzle Solving" />
+  <br>
+  <sub><em>Demo: Automated Puzzle Solving</em></sub>
 </div>
 
 
